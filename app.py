@@ -31,7 +31,10 @@ def get_problems():
 @app.route('/api/grade', methods=['POST'])
 def grade():
     try:
-        data = request.json
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({'error': 'Invalid or missing JSON body'}), 400
+
         problem_id = data.get('problem_id')
         code = data.get('code')
         student_id = data.get('student_id', 'SV001')
@@ -82,9 +85,22 @@ def grade():
             print("[ERROR] Feedback failed (exit {}): {}".format(
                 feedback_result.returncode, feedback_result.stderr[:300]))
         
-        # Lấy kết quả
+        return jsonify({'success': True, 'problem_id': problem_id})
+    
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Xử lý quá thời gian cho phép'}), 504
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/results/<problem_id>', methods=['GET'])
+def get_results(problem_id):
+    """GET /api/results/P001 - Lấy kết quả phân loại + feedback"""
+    import re
+    if not re.match(r'^[A-Za-z0-9_]+$', problem_id):
+        return jsonify({'error': 'Invalid problem_id'}), 400
+    try:
         results = {}
-        
+
         class_dir = Path("auto_grader/output/classifications")
         if class_dir.exists():
             files = list(class_dir.glob("*.json"))
@@ -92,7 +108,7 @@ def grade():
                 latest = max(files, key=lambda x: x.stat().st_mtime)
                 with open(latest, 'r', encoding='utf-8') as f:
                     results['classification'] = json.load(f)
-        
+
         feedback_dir = Path("auto_grader/output/feedback")
         if feedback_dir.exists():
             files = list(feedback_dir.glob("*{}*.json".format(problem_id)))
@@ -100,11 +116,17 @@ def grade():
                 latest = max(files, key=lambda x: x.stat().st_mtime)
                 with open(latest, 'r', encoding='utf-8') as f:
                     results['feedback'] = json.load(f)
-        
-        return jsonify({'success': True, 'results': results})
-    
-    except subprocess.TimeoutExpired:
-        return jsonify({'error': 'Xử lý quá thời gian cho phép'}), 504
+
+        history_dir = Path("auto_grader/output/auto_fix_history")
+        if history_dir.exists():
+            history_files = list(history_dir.glob("{}_*.json".format(problem_id)))
+            if history_files:
+                latest = max(history_files, key=lambda x: x.stat().st_mtime)
+                with open(latest, 'r', encoding='utf-8') as f:
+                    results['loop_history'] = json.load(f)
+
+        return jsonify(results)
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

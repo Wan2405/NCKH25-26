@@ -66,7 +66,9 @@ def grade():
     }
     """
     try:
-        data = request.json
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({'error': 'Invalid or missing JSON body'}), 400
         problem_id = data.get('problem_id')
         code = data.get('code')
         student_id = data.get('student_id', 'SV001')
@@ -164,6 +166,9 @@ def grade():
 @app.route('/api/results/<problem_id>', methods=['GET'])
 def get_results(problem_id):
     """GET /api/results/P001 - Lấy kết quả phân loại + feedback"""
+    import re
+    if not re.match(r'^[A-Za-z0-9_]+$', problem_id):
+        return jsonify({'error': 'Invalid problem_id'}), 400
     try:
         results = {}
         

@@ -334,7 +334,8 @@
         });
         
         function displayResults(details, result) {
-            const classification = details.classification || {};
+            const classificationData = details.classification || {};
+            const classification = classificationData.classification || classificationData;
             const feedback = details.feedback || {};
             const loopHistory = details.loop_history || [];
             
