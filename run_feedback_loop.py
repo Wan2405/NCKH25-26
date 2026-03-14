@@ -8,6 +8,8 @@ import os
 import json
 from pathlib import Path
 
+import subprocess as _subprocess
+
 sys.path.insert(0, os.path.dirname(__file__))
 from auto_grader.modules.feedback_generator import FeedbackGenerator
 from auto_grader.modules.log_processor import LogProcessor
@@ -86,12 +88,16 @@ def auto_fix_loop(problem_id, max_rounds=3):
         
         # BƯỚC 1: Test code hiện tại (🐳 QUA DOCKER)
         print(f"[*] Đang chạy test (🐳 Docker)...")
-        sys.argv = ["runner.py", problem_id, code_file, "--student_id", "SV001"]
+        sys.argv = ["runner.py", problem_id, code_file, "SV001"]
         runner.main()
         
         # BƯỚC 2: Phân loại lỗi
         print(f"[*] Đang phân loại lỗi...")
-        os.system("python phan_loai_loi.py > /dev/null 2>&1")
+        _subprocess.run(
+            [sys.executable, "phan_loai_loi.py"],
+            stdout=_subprocess.DEVNULL,
+            stderr=_subprocess.DEVNULL
+        )
         error_result = read_latest_classification()
         
         # BƯỚC 3: Kiểm tra pass chưa?

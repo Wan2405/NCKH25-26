@@ -11,12 +11,17 @@ async function loadProblems() {
         const response = await fetch(`${API_BASE}/problems`);
         const data = await response.json();
         
-        if (data.success) {
-            problems = data.problems;
-            renderProblems();
-        }
+        // API returns {P001: {...}, P002: {...}} object
+        problems = Object.entries(data).map(([id, info]) => ({
+            id: id,
+            title: info.title,
+            description: info.description,
+            difficulty: info.difficulty || 'Easy'
+        }));
+        renderProblems();
     } catch (error) {
         console.error('Error:', error);
+        document.getElementById('problemList').innerHTML = '<p>Lỗi tải danh sách bài tập</p>';
     }
 }
 
@@ -27,7 +32,7 @@ function renderProblems() {
         <div class="problem-item" onclick="selectProblem('${p.id}')">
             <div><strong>${p.id}</strong></div>
             <div>${p.title}</div>
-            <span class="badge ${p.difficulty.toLowerCase()}">${p.difficulty}</span>
+            ${p.difficulty ? `<span class="badge ${p.difficulty.toLowerCase()}">${p.difficulty}</span>` : ''}
         </div>
     `).join('');
 }

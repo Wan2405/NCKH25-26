@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 import sys
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from runner import main as run_test
 from run_feedback_loop import auto_fix_loop
 

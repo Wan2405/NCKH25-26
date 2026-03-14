@@ -35,7 +35,7 @@ class LogProcessor:
             ],
             'test_failed': r'Tests run:\s*(\d+),\s*Failures:\s*(\d+),\s*Errors:\s*(\d+),\s*Skipped:\s*(\d+)',
             'build_success': r'BUILD SUCCESS',
-            'exit_code': r'exit code:\s*(\d+)'
+            'exit_code': r'(?i)exit\s*code:?\s*(\d+)'
         }
     
     def read_log_file(self, log_path="auto_grader/grading_history.txt"):
