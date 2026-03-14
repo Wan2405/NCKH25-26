@@ -44,10 +44,11 @@ function selectProblem(id) {
     document.querySelectorAll('.problem-item').forEach(el => {
         el.classList.remove('active');
     });
-    // Sử dụng event an toàn hơn
+    // Sử dụng data attribute an toàn hơn
     const items = document.querySelectorAll('.problem-item');
     items.forEach(el => {
-        if (el.querySelector('strong') && el.querySelector('strong').textContent === id) {
+        const strongEl = el.querySelector('strong');
+        if (strongEl && strongEl.textContent === id) {
             el.classList.add('active');
         }
     });

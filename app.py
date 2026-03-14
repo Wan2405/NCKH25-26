@@ -57,7 +57,8 @@ def grade():
             timeout=180
         )
         if runner_result.returncode != 0:
-            print("Runner stderr: {}".format(runner_result.stderr))
+            print("[ERROR] Runner failed (exit {}): {}".format(
+                runner_result.returncode, runner_result.stderr[:300]))
         
         # Chạy phân loại
         classify_result = subprocess.run(
@@ -67,7 +68,8 @@ def grade():
             timeout=120
         )
         if classify_result.returncode != 0:
-            print("Classifier stderr: {}".format(classify_result.stderr))
+            print("[ERROR] Classifier failed (exit {}): {}".format(
+                classify_result.returncode, classify_result.stderr[:300]))
         
         # Chạy feedback
         feedback_result = subprocess.run(
@@ -77,7 +79,8 @@ def grade():
             timeout=120
         )
         if feedback_result.returncode != 0:
-            print("Feedback stderr: {}".format(feedback_result.stderr))
+            print("[ERROR] Feedback failed (exit {}): {}".format(
+                feedback_result.returncode, feedback_result.stderr[:300]))
         
         # Lấy kết quả
         results = {}

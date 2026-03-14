@@ -16,6 +16,11 @@ class ErrorClassifier:
     2. LLM Classification (Llama 3.1) với exponential backoff
     """
     
+    # Giới hạn ký tự log gửi tới LLM
+    STDOUT_LIMIT = 2000
+    STDERR_LIMIT = 1000
+    DETAIL_LIMIT = 500
+    
     def __init__(self, use_llm=True, ollama_url="http://localhost:11434/api/generate"):
         self.use_llm = use_llm
         self.ollama_url = ollama_url
@@ -59,7 +64,7 @@ class ErrorClassifier:
                         'nguyen_nhan': 'Detected pattern: {}'.format(keyword),
                         'confidence': info['confidence'],
                         'goi_y': self._get_quick_suggestion(category),
-                        'chi_tiet': self._safe_str(log_data.get('execution', {}).get('error_detail', ''))[:500]
+                        'chi_tiet': self._safe_str(log_data.get('execution', {}).get('error_detail', ''))[:self.DETAIL_LIMIT]
                     }
         
         return {
@@ -83,8 +88,8 @@ class ErrorClassifier:
         error_type = log_data.get('execution', {}).get('error_type', 'UNKNOWN')
         error_detail = log_data.get('execution', {}).get('error_detail', '')
         test_results = log_data.get('test_results', {})
-        stdout = log_data.get('raw_logs', {}).get('stdout', '')[-2000:]
-        stderr = log_data.get('raw_logs', {}).get('stderr', '')[-1000:]
+        stdout = log_data.get('raw_logs', {}).get('stdout', '')[-self.STDOUT_LIMIT:]
+        stderr = log_data.get('raw_logs', {}).get('stderr', '')[-self.STDERR_LIMIT:]
         
         # Prompt cho Llama 3.1
         prompt_template = """Bạn là AI chuyên phân tích lỗi Java.

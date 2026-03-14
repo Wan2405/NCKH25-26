@@ -10,8 +10,12 @@ from pathlib import Path
 class DockerRunner:
     """Class chạy test trong Docker với security sandboxing"""
     
-    def __init__(self, image_name="auto-grader-runner"):
+    def __init__(self, image_name="auto-grader-runner", memory_limit="512m",
+                 cpu_limit="1.0", pids_limit="100"):
         self.image_name = image_name
+        self.memory_limit = memory_limit
+        self.cpu_limit = cpu_limit
+        self.pids_limit = pids_limit
         # Đường dẫn tuyệt đối tới Dockerfile
         self.docker_dir = os.path.join(
             os.path.dirname(os.path.abspath(__file__))
@@ -77,9 +81,9 @@ class DockerRunner:
                 "docker", "run",
                 "--rm",
                 "--network", "none",
-                "--memory", "512m",
-                "--cpus", "1.0",
-                "--pids-limit", "100",
+                "--memory", self.memory_limit,
+                "--cpus", self.cpu_limit,
+                "--pids-limit", self.pids_limit,
                 "-v", "{}:/app:rw".format(maven_abs_path),
                 "-w", "/app",
                 self.image_name,
