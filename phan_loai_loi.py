@@ -44,7 +44,11 @@ def main():
     print("📊 KẾT QUẢ:")
     print("=" * 60)
     print(f"Loại lỗi: {result['loai_loi']}")
-    print(f"Nguyên nhân: {result['nguyen_nhan'][:100]}...")
+    # Xử lý nguyen_nhan có thể là list hoặc string
+    nguyen_nhan = result.get('nguyen_nhan', '')
+    if isinstance(nguyen_nhan, list):
+        nguyen_nhan = '; '.join(str(item) for item in nguyen_nhan)
+    print(f"Nguyên nhân: {str(nguyen_nhan)[:200]}")
     print("=" * 60)
     
     # Lưu kết quả

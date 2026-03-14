@@ -105,6 +105,23 @@ button:hover {
     padding: 1.5rem;
     background: #f8f9fa;
     border-radius: 8px;
+    border-left: 4px solid #dc3545;
+}
+
+.result.success {
+    border-left-color: #28a745;
+    background: #f0fff4;
+}
+
+.result pre {
+    background: #2d2d2d;
+    color: #f8f8f2;
+    padding: 1rem;
+    border-radius: 5px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-top: 0.5rem;
 }
 
 .loading {

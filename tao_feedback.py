@@ -20,7 +20,22 @@ PROBLEMS = {
         'title': 'Tinh giai thua',
         'description': 'Viet ham tinhGiaiThua(int n) tra ve n!',
         'code_file': 'auto_grader/input_code/P002_TinhGiaiThua.java'
-    }
+    },
+    'P003': {
+        'title': 'Kiem tra so nguyen to',
+        'description': 'Viet ham kiemTraNguyenTo(int n) tra ve true neu n la so nguyen to',
+        'code_file': 'auto_grader/input_code/P003_KiemTraNguyenTo.java'
+    },
+    'P004': {
+        'title': 'Tim max trong mang',
+        'description': 'Viet ham timMax(int[] arr) tra ve phan tu lon nhat',
+        'code_file': 'auto_grader/input_code/P004_TimMax.java'
+    },
+    'P005': {
+        'title': 'Dao nguoc chuoi',
+        'description': 'Viet ham daoNguoc(String s) tra ve chuoi dao nguoc',
+        'code_file': 'auto_grader/input_code/P005_DaoNguocChuoi.java'
+    },
 }
 
 def main():
@@ -87,8 +102,9 @@ def main():
     feedback_gen.save_feedback(output_file, suggestion)
     
     print("\n" + "=" * 60)
-    print(f"[+] Feedback: {suggestion.get('explanation', 'N/A')[:100]}...")
-    print(f"[+] Lưu tại: {output_file}")
+    explanation = suggestion.get('explanation', 'N/A')
+    print("[+] Feedback: {}".format(explanation[:200]))
+    print("[+] Lưu tại: {}".format(output_file))
     print("=" * 60)
 
 if __name__ == "__main__":

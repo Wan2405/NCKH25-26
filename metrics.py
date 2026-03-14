@@ -58,7 +58,10 @@ def print_metrics(results):
     
     print(f"Tổng bài: {total}")
     print(f"Pass: {passed_count}")
-    print(f"Pass-all-tests@3: {(passed_count/total*100):.1f}%")
+    if total > 0:
+        print(f"Pass-all-tests@3: {(passed_count/total*100):.1f}%")
+    else:
+        print("Pass-all-tests@3: N/A (không có kết quả)")
     
     print("=" * 70)
 

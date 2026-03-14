@@ -26,7 +26,22 @@ PROBLEMS = {
         'title': 'Tinh giai thua',
         'description': 'Viet ham tinhGiaiThua(int n) tra ve n!',
         'input_file': 'auto_grader/input_code/P002_TinhGiaiThua.java'
-    }
+    },
+    'P003': {
+        'title': 'Kiem tra so nguyen to',
+        'description': 'Viet ham kiemTraNguyenTo(int n) tra ve true neu n la so nguyen to',
+        'input_file': 'auto_grader/input_code/P003_KiemTraNguyenTo.java'
+    },
+    'P004': {
+        'title': 'Tim max trong mang',
+        'description': 'Viet ham timMax(int[] arr) tra ve phan tu lon nhat',
+        'input_file': 'auto_grader/input_code/P004_TimMax.java'
+    },
+    'P005': {
+        'title': 'Dao nguoc chuoi',
+        'description': 'Viet ham daoNguoc(String s) tra ve chuoi dao nguoc',
+        'input_file': 'auto_grader/input_code/P005_DaoNguocChuoi.java'
+    },
 }
 
 def read_latest_classification():

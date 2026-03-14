@@ -6,13 +6,14 @@ Phân loại lỗi bằng LLM (Llama 3.1) + Regex fallback
 import requests
 import json
 import re
+import time
 from pathlib import Path
 
 class ErrorClassifier:
     """
     Phân loại lỗi với 2 chiến lược:
     1. Quick Classification (Regex)
-    2. LLM Classification (Llama 3.1)
+    2. LLM Classification (Llama 3.1) với exponential backoff
     """
     
     def __init__(self, use_llm=True, ollama_url="http://localhost:11434/api/generate"):
@@ -42,7 +43,7 @@ class ErrorClassifier:
         }
     
     def quick_classify(self, log_data):
-        """Phân loại nhanh bằng Regex - SỬA LỖI: Thêm method này"""
+        """Phân loại nhanh bằng Regex"""
         
         full_text = log_data.get('raw_logs', {}).get('stdout', '') + \
                    log_data.get('raw_logs', {}).get('stderr', '')
@@ -58,7 +59,7 @@ class ErrorClassifier:
                         'nguyen_nhan': 'Detected pattern: {}'.format(keyword),
                         'confidence': info['confidence'],
                         'goi_y': self._get_quick_suggestion(category),
-                        'chi_tiet': str(log_data.get('execution', {}).get('error_detail', ''))[:500]
+                        'chi_tiet': self._safe_str(log_data.get('execution', {}).get('error_detail', ''))[:500]
                     }
         
         return {
@@ -70,14 +71,20 @@ class ErrorClassifier:
             'chi_tiet': ''
         }
     
-    def llm_classify(self, log_data):
-        """Phân loại bằng LLM"""
+    def _safe_str(self, value):
+        """Chuyển đổi giá trị bất kỳ thành string an toàn (list, dict, str, etc.)"""
+        if isinstance(value, list):
+            return '\n'.join(str(item) for item in value)
+        return str(value)
+    
+    def llm_classify(self, log_data, max_retries=3):
+        """Phân loại bằng LLM với exponential backoff"""
         
         error_type = log_data.get('execution', {}).get('error_type', 'UNKNOWN')
         error_detail = log_data.get('execution', {}).get('error_detail', '')
         test_results = log_data.get('test_results', {})
-        stdout = log_data.get('raw_logs', {}).get('stdout', '')[:1500]
-        stderr = log_data.get('raw_logs', {}).get('stderr', '')[:500]
+        stdout = log_data.get('raw_logs', {}).get('stdout', '')[-2000:]
+        stderr = log_data.get('raw_logs', {}).get('stderr', '')[-1000:]
         
         # Prompt cho Llama 3.1
         prompt_template = """Bạn là AI chuyên phân tích lỗi Java.
@@ -110,6 +117,9 @@ Phân tích và trả về JSON:
 }}
 """
         
+        # Chuyển error_detail thành string an toàn
+        error_detail_str = self._safe_str(error_detail)
+        
         prompt = prompt_template.format(
             problem_id=log_data.get('metadata', {}).get('problem_id', 'N/A'),
             error_type=error_type,
@@ -117,35 +127,48 @@ Phân tích và trả về JSON:
             total_tests=test_results.get('total_tests', 0),
             passed=test_results.get('passed', 0),
             failed=test_results.get('failed', 0),
-            error_detail=error_detail,
+            error_detail=error_detail_str,
             stdout=stdout,
             stderr=stderr
         )
 
-        try:
-            response = requests.post(
-                self.ollama_url,
-                json={
-                    "model": "llama3.1",
-                    "prompt": prompt,
-                    "format": "json",
-                    "stream": False,
-                    "options": {"temperature": 0.2}
-                },
-                timeout=60
-            )
-            
-            if response.status_code == 200:
-                llm_result = json.loads(response.json()['response'])
-                llm_result['method'] = 'llm'
-                llm_result['confidence'] = 0.95
-                return llm_result
-            else:
-                raise Exception("Ollama returned {}".format(response.status_code))
+        for attempt in range(max_retries):
+            backoff_time = 2 ** attempt  # 1s, 2s, 4s
+            try:
+                response = requests.post(
+                    self.ollama_url,
+                    json={
+                        "model": "llama3.1",
+                        "prompt": prompt,
+                        "format": "json",
+                        "stream": False,
+                        "options": {"temperature": 0.2}
+                    },
+                    timeout=90
+                )
                 
-        except Exception as e:
-            print("⚠️ LLM Error: {}. Dùng Regex fallback.".format(str(e)))
-            return self.quick_classify(log_data)
+                if response.status_code == 200:
+                    llm_result = json.loads(response.json()['response'])
+                    llm_result['method'] = 'llm'
+                    llm_result['confidence'] = 0.95
+                    return llm_result
+                else:
+                    print("⚠️ Ollama returned {}, retry sau {}s...".format(
+                        response.status_code, backoff_time))
+                    time.sleep(backoff_time)
+                    
+            except requests.ConnectionError:
+                print("⚠️ Không kết nối được Ollama, retry sau {}s...".format(backoff_time))
+                time.sleep(backoff_time)
+            except requests.Timeout:
+                print("⚠️ Timeout, retry sau {}s...".format(backoff_time))
+                time.sleep(backoff_time)
+            except Exception as e:
+                print("⚠️ LLM Error: {}, retry sau {}s...".format(str(e), backoff_time))
+                time.sleep(backoff_time)
+        
+        print("⚠️ LLM không phản hồi sau {} lần. Dùng Regex fallback.".format(max_retries))
+        return self.quick_classify(log_data)
     
     def classify(self, log_data):
         """

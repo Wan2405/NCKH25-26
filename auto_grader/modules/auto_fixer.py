@@ -5,15 +5,15 @@ MODULE AUTO FIXER - Tự động sửa code cho đến khi pass
 import os
 import shutil
 import subprocess
+import re
 from pathlib import Path
 from datetime import datetime
 import json
 
-import sys
-sys.path.insert(0, os.path.dirname(__file__))
-from log_processor import LogProcessor
-from error_classifier import ErrorClassifier
-from feedback_generator import FeedbackGenerator
+# Sử dụng relative imports thay vì sys.path hack
+from .log_processor import LogProcessor
+from .error_classifier import ErrorClassifier
+from .feedback_generator import FeedbackGenerator
 
 class AutoFixer:
     def __init__(self, max_iterations=5, use_docker=False):
@@ -139,7 +139,8 @@ class AutoFixer:
             capture_output=True,
             text=True,
             encoding='utf-8',
-            errors='ignore'
+            errors='ignore',
+            timeout=180
         )
         
         full_log = result.stdout

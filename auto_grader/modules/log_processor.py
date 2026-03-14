@@ -174,8 +174,8 @@ class LogProcessor:
             },
             'test_results': test_info,
             'raw_logs': {
-                'stdout': stdout[-2000:],  # Lưu 2000 ký tự cuối
-                'stderr': stderr[-1000:] if stderr else ''
+                'stdout': stdout[-5000:],  # Tăng giới hạn lưu log
+                'stderr': stderr[-3000:] if stderr else ''
             }
         }
         

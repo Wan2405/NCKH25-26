@@ -1,4 +1,5 @@
-const API_BASE = 'http://localhost:5000/api';
+// API base URL - sử dụng relative path để hoạt động cả khi deploy
+const API_BASE = '/api';
 let problems = [];
 let selectedProblem = null;
 
@@ -20,7 +21,7 @@ async function loadProblems() {
         }));
         renderProblems();
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error loading problems:', error);
         document.getElementById('problemList').innerHTML = '<p>Lỗi tải danh sách bài tập</p>';
     }
 }
@@ -43,13 +44,19 @@ function selectProblem(id) {
     document.querySelectorAll('.problem-item').forEach(el => {
         el.classList.remove('active');
     });
-    event.target.closest('.problem-item').classList.add('active');
+    // Sử dụng event an toàn hơn
+    const items = document.querySelectorAll('.problem-item');
+    items.forEach(el => {
+        if (el.querySelector('strong') && el.querySelector('strong').textContent === id) {
+            el.classList.add('active');
+        }
+    });
     
     document.getElementById('problemView').innerHTML = `
         <h2>${selectedProblem.title}</h2>
         <p>${selectedProblem.description}</p>
-        <textarea id="codeEditor" placeholder="Viết code..."></textarea>
-        <button onclick="submitCode()" id="submitBtn">✅ Submit</button>
+        <textarea id="codeEditor" placeholder="Viết code Java tại đây..."></textarea>
+        <button onclick="submitCode()" id="submitBtn">✅ Submit & Grade</button>
         <div id="result"></div>
     `;
 }
@@ -65,7 +72,8 @@ async function submitCode() {
     showLoading(true);
 
     try {
-        const response = await fetch(`${API_BASE}/submit`, {
+        // Gọi đúng endpoint /api/grade (không phải /api/submit)
+        const response = await fetch(`${API_BASE}/grade`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -77,60 +85,47 @@ async function submitCode() {
 
         const data = await response.json();
 
-        if (data.success) {
-            showResult(data.result);
+        if (response.ok && data.success) {
+            showResult(data.results);
+        } else {
+            alert('Lỗi: ' + (data.error || 'Không xác định'));
         }
     } catch (error) {
-        alert('Lỗi: ' + error.message);
+        alert('Lỗi kết nối: ' + error.message);
     } finally {
         showLoading(false);
     }
 }
 
-function showResult(result) {
-    const isPassed = result.loai_loi.toLowerCase().includes('pass');
+function showResult(results) {
+    const classification = results.classification || {};
+    const feedback = results.feedback || {};
+    const classInfo = classification.classification || classification;
     
-    document.getElementById('result').innerHTML = `
+    const errorType = classInfo.loai_loi || 'Unknown';
+    const isPassed = errorType.toUpperCase().includes('PASS');
+    
+    let html = `
         <div class="result ${isPassed ? 'success' : ''}">
             <h3>📊 Kết quả</h3>
-            <p><strong>Loại lỗi:</strong> ${result.loai_loi}</p>
-            <p><strong>Nguyên nhân:</strong> ${result.nguyen_nhan}</p>
-            <p><strong>Gợi ý:</strong> ${result.goi_y}</p>
-            
-            ${!isPassed ? '<button onclick="getFeedback()" class="btn-secondary">💡 Xem gợi ý AI</button>' : ''}
-        </div>
+            <p><strong>Loại lỗi:</strong> ${errorType}</p>
+            <p><strong>Nguyên nhân:</strong> ${classInfo.nguyen_nhan || 'N/A'}</p>
+            <p><strong>Gợi ý:</strong> ${classInfo.goi_y || 'N/A'}</p>
     `;
-}
-
-async function getFeedback() {
-    showLoading(true);
     
-    try {
-        const response = await fetch(`${API_BASE}/feedback/${selectedProblem.id}`, {
-            method: 'POST'
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showFeedbackDetail(data.feedback);
-        }
-    } finally {
-        showLoading(false);
-    }
-}
-
-function showFeedbackDetail(feedback) {
-    const html = `
-        <div class="result" style="border-left-color: #667eea; margin-top: 1rem;">
-            <h3>💡 Gợi ý chi tiết</h3>
-            <p><strong>Giải thích:</strong> ${feedback.explanation || 'N/A'}</p>
+    // Hiển thị feedback nếu có
+    if (feedback.explanation) {
+        html += `
+            <hr style="margin: 1rem 0;">
+            <h3>💡 Gợi ý từ AI</h3>
+            <p><strong>Giải thích:</strong> ${feedback.explanation}</p>
             <p><strong>Hướng dẫn:</strong></p>
             <pre>${feedback.reasoning || 'N/A'}</pre>
-        </div>
-    `;
+        `;
+    }
     
-    document.getElementById('result').innerHTML += html;
+    html += '</div>';
+    document.getElementById('result').innerHTML = html;
 }
 
 function showLoading(show) {
