@@ -132,7 +132,7 @@ class LogProcessor:
         
         return test_info
     
-    def process_log(self, log_path="auto_grader/grading_history.txt", student_id="SV001", problem_id="P001"):
+    def process_log(self, log_path="auto_grader/grading_history.txt", student_id="SV001", problem_id=""):
         """
         HÀM CHÍNH: Đọc log → Phân tích → Tạo JSON
         """
@@ -185,9 +185,8 @@ class LogProcessor:
         """Lưu JSON"""
         
         if filename is None:
-            problem_id = data.get('metadata', {}).get('problem_id', 'unknown')
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = "{}_{}.json".format(problem_id, timestamp)
+            filename = "log_{}.json".format(timestamp)
         
         output_path = self.output_dir / filename
         
@@ -208,7 +207,6 @@ if __name__ == '__main__':
     result = processor.process_log(
         log_path="auto_grader/grading_history.txt",
         student_id="SV001",
-        problem_id="P001"
     )
     
     print(json.dumps(result, indent=2, ensure_ascii=False))
