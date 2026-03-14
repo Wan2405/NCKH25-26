@@ -6,9 +6,17 @@ Tạo gợi ý sửa lỗi từ LLM với retry + exponential backoff
 import requests
 import json
 import os
+import sys
 import time
 from pathlib import Path
 from datetime import datetime
+
+# Allow importing from the top-level llm package regardless of working directory
+_ROOT = str(Path(__file__).parent.parent.parent)
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+
+from llm.code_sanitizer import sanitize_java_code
 
 class FeedbackGenerator:
     
@@ -46,6 +54,8 @@ class FeedbackGenerator:
         prompt += "1. Giải thích lỗi ngắn gọn (2-3 câu)\n"
         prompt += "2. Đưa ra code chính xác để sửa\n"
         prompt += "3. Giải thích vì sao\n\n"
+        prompt += "LƯU Ý QUAN TRỌNG: Không bọc code trong markdown fences (không dùng ```java). "
+        prompt += "Không thay đổi tên public class. Trả về toàn bộ file Java.\n\n"
         prompt += 'Trả về JSON: {"explanation": "...", "fixed_code": "...", "reasoning": "..."}'
         
         # Retry với exponential backoff
@@ -74,6 +84,9 @@ class FeedbackGenerator:
                     required_fields = ['explanation', 'fixed_code', 'reasoning']
                     
                     if all(field in feedback for field in required_fields):
+                        feedback['fixed_code'] = sanitize_java_code(
+                            feedback['fixed_code']
+                        )
                         feedback['generated_at'] = datetime.now().isoformat()
                         feedback['model'] = 'llama3.1'
                         feedback['error_type'] = loai_loi

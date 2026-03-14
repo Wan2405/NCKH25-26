@@ -23,6 +23,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from llm.code_sanitizer import sanitize_java_code
+
 if TYPE_CHECKING:
     from core.docker_manager import DockerManager
     from execution.log_processor import LogProcessor
@@ -147,6 +149,7 @@ class LoopOrchestrator:
                 history[-1]["status"] = "FAILED_TO_FIX"
                 break
 
+            fixed_code = sanitize_java_code(fixed_code, expected_class=class_name)
             current_code = fixed_code
             print("[+] Code updated from LLM suggestion")
 
