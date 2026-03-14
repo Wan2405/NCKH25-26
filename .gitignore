@@ -21,6 +21,7 @@ env/
 
 # Maven build output
 auto_grader/maven_project/target/
+workspace/target/
 
 # OS
 .DS_Store
