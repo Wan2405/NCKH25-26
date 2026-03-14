@@ -11,10 +11,19 @@ import re
 sys.path.insert(0, os.path.dirname(__file__))
 from auto_grader.modules.log_processor import LogProcessor
 
+# Mapping problem_id → tên class Java tương ứng với test
+PROBLEM_CLASS_MAP = {
+    'P001': 'P001_TongHaiSo',
+    'P002': 'P002_TinhGiaiThua',
+    'P003': 'P003_KiemTraNguyenTo',
+    'P004': 'P004_TimMax',
+    'P005': 'P005_DaoNguocChuoi',
+}
+
 def main():
     # Nhận tham số từ CLI
     if len(sys.argv) < 3:
-        print("Cách dùng: python runner.py P001 code_file.java")
+        print("Cách dùng: python runner.py P001 code_file.java [student_id]")
         sys.exit(1)
     
     problem_id = sys.argv[1]
@@ -22,7 +31,7 @@ def main():
     student_id = sys.argv[3] if len(sys.argv) > 3 else "SV001"
     
     print("=" * 60)
-    print(f"🤖 AUTO GRADER - RUNNER")
+    print("🤖 AUTO GRADER - RUNNER")
     print("=" * 60)
     print(f"Problem ID: {problem_id}")
     print(f"Code file: {code_file}")
@@ -33,8 +42,9 @@ def main():
         print(f"❌ File không tồn tại: {code_file}")
         return
     
-    # Tính toán đường dẫn
-    java_filename = f"{problem_id}_TongHaiSo.java"
+    # Tính toán đường dẫn - lấy tên class từ mapping
+    target_class = PROBLEM_CLASS_MAP.get(problem_id, f"{problem_id}_Solution")
+    java_filename = f"{target_class}.java"
     maven_root = os.path.join("auto_grader", "maven_project")
     dest_path = os.path.join(
         maven_root, 
@@ -54,7 +64,7 @@ def main():
     
     if class_match:
         old_class = class_match.group(1)
-        new_class = f"{problem_id}_TongHaiSo"
+        new_class = target_class
         code_content = code_content.replace(
             f"public class {old_class}",
             f"public class {new_class}"
@@ -88,7 +98,7 @@ def main():
         
         full_log = result.stdout
         if result.stderr:
-            full_log += "\n--- STDERR ---\n" + result.stderr
+            full_log += "\n--- ERROR STREAM ---\n" + result.stderr
         full_log += f"\n--- EXIT CODE: {result.returncode} ---"
         
     except Exception as e:

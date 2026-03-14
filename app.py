@@ -14,7 +14,10 @@ CORS(app)
 
 PROBLEMS = {
     'P001': {'title': 'Tong hai so', 'description': 'Viet ham tinhTong(int a, int b) tra ve tong a + b'},
-    'P002': {'title': 'Tinh giai thua', 'description': 'Viet ham tinhGiaiThua(int n) tra ve n!'}
+    'P002': {'title': 'Tinh giai thua', 'description': 'Viet ham tinhGiaiThua(int n) tra ve n!'},
+    'P003': {'title': 'Kiem tra so nguyen to', 'description': 'Viet ham kiemTraNguyenTo(int n) tra ve true neu n la so nguyen to'},
+    'P004': {'title': 'Tim max trong mang', 'description': 'Viet ham timMax(int[] arr) tra ve phan tu lon nhat'},
+    'P005': {'title': 'Dao nguoc chuoi', 'description': 'Viet ham daoNguoc(String s) tra ve chuoi dao nguoc'},
 }
 
 @app.route('/')
@@ -36,24 +39,48 @@ def grade():
         if not problem_id or not code:
             return jsonify({'error': 'Missing fields'}), 400
         
+        if problem_id not in PROBLEMS:
+            return jsonify({'error': 'Unknown problem: {}'.format(problem_id)}), 400
+        
         # Tạo file code tạm
-        temp_file = f"auto_grader/input_code/{problem_id}_temp.java"
+        temp_file = "auto_grader/input_code/{}_temp.java".format(problem_id)
         Path(temp_file).parent.mkdir(parents=True, exist_ok=True)
         
         with open(temp_file, 'w', encoding='utf-8') as f:
             f.write(code)
         
-        # Chạy runner
-        subprocess.run(
-            ['python', 'runner.py', problem_id, temp_file, student_id],
-            timeout=120
+        # Chạy runner - kiểm tra return code
+        runner_result = subprocess.run(
+            [sys.executable, 'runner.py', problem_id, temp_file, student_id],
+            capture_output=True,
+            text=True,
+            timeout=180
         )
+        if runner_result.returncode != 0:
+            print("[ERROR] Runner failed (exit {}): {}".format(
+                runner_result.returncode, runner_result.stderr[:300]))
         
         # Chạy phân loại
-        subprocess.run(['python', 'phan_loai_loi.py'], timeout=60)
+        classify_result = subprocess.run(
+            [sys.executable, 'phan_loai_loi.py'],
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+        if classify_result.returncode != 0:
+            print("[ERROR] Classifier failed (exit {}): {}".format(
+                classify_result.returncode, classify_result.stderr[:300]))
         
         # Chạy feedback
-        subprocess.run(['python', 'tao_feedback.py', problem_id], timeout=60)
+        feedback_result = subprocess.run(
+            [sys.executable, 'tao_feedback.py', problem_id],
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+        if feedback_result.returncode != 0:
+            print("[ERROR] Feedback failed (exit {}): {}".format(
+                feedback_result.returncode, feedback_result.stderr[:300]))
         
         # Lấy kết quả
         results = {}
@@ -68,7 +95,7 @@ def grade():
         
         feedback_dir = Path("auto_grader/output/feedback")
         if feedback_dir.exists():
-            files = list(feedback_dir.glob(f"*{problem_id}*.json"))
+            files = list(feedback_dir.glob("*{}*.json".format(problem_id)))
             if files:
                 latest = max(files, key=lambda x: x.stat().st_mtime)
                 with open(latest, 'r', encoding='utf-8') as f:
@@ -76,6 +103,8 @@ def grade():
         
         return jsonify({'success': True, 'results': results})
     
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Xử lý quá thời gian cho phép'}), 504
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

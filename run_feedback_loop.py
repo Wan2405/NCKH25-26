@@ -8,6 +8,8 @@ import os
 import json
 from pathlib import Path
 
+import subprocess as _subprocess
+
 sys.path.insert(0, os.path.dirname(__file__))
 from auto_grader.modules.feedback_generator import FeedbackGenerator
 from auto_grader.modules.log_processor import LogProcessor
@@ -24,7 +26,22 @@ PROBLEMS = {
         'title': 'Tinh giai thua',
         'description': 'Viet ham tinhGiaiThua(int n) tra ve n!',
         'input_file': 'auto_grader/input_code/P002_TinhGiaiThua.java'
-    }
+    },
+    'P003': {
+        'title': 'Kiem tra so nguyen to',
+        'description': 'Viet ham kiemTraNguyenTo(int n) tra ve true neu n la so nguyen to',
+        'input_file': 'auto_grader/input_code/P003_KiemTraNguyenTo.java'
+    },
+    'P004': {
+        'title': 'Tim max trong mang',
+        'description': 'Viet ham timMax(int[] arr) tra ve phan tu lon nhat',
+        'input_file': 'auto_grader/input_code/P004_TimMax.java'
+    },
+    'P005': {
+        'title': 'Dao nguoc chuoi',
+        'description': 'Viet ham daoNguoc(String s) tra ve chuoi dao nguoc',
+        'input_file': 'auto_grader/input_code/P005_DaoNguocChuoi.java'
+    },
 }
 
 def read_latest_classification():
@@ -86,12 +103,16 @@ def auto_fix_loop(problem_id, max_rounds=3):
         
         # BƯỚC 1: Test code hiện tại (🐳 QUA DOCKER)
         print(f"[*] Đang chạy test (🐳 Docker)...")
-        sys.argv = ["runner.py", problem_id, code_file, "--student_id", "SV001"]
+        sys.argv = ["runner.py", problem_id, code_file, "SV001"]
         runner.main()
         
         # BƯỚC 2: Phân loại lỗi
         print(f"[*] Đang phân loại lỗi...")
-        os.system("python phan_loai_loi.py > /dev/null 2>&1")
+        _subprocess.run(
+            [sys.executable, "phan_loai_loi.py"],
+            stdout=_subprocess.DEVNULL,
+            stderr=_subprocess.DEVNULL
+        )
         error_result = read_latest_classification()
         
         # BƯỚC 3: Kiểm tra pass chưa?

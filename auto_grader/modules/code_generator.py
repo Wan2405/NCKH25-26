@@ -1,9 +1,11 @@
 """
 MODULE CODE GENERATOR - Sinh code Java từ đề bài
+Với retry + exponential backoff
 """
 
 import requests
 import json
+import time
 from pathlib import Path
 from datetime import datetime
 
@@ -12,12 +14,13 @@ class CodeGenerator:
         self.ollama_url = ollama_url
         self.output_dir = Path("auto_grader/output/generated_code")
         self.output_dir.mkdir(parents=True, exist_ok=True)
+
     def generate_from_problem(self, problem_id, problem_description, class_name=None, max_retries=3):
-        """Sinh code Java từ đề bài"""
+        """Sinh code Java từ đề bài với exponential backoff"""
         
         if class_name is None:
             class_name = "{}_Solution".format(problem_id)
-        # Tạo prompt
+
         prompt = """Ban la Java expert. Viet code Java hoan chinh cho bai tap sau:
 
 DE BAI:
@@ -39,7 +42,9 @@ public class {cls} {{
 TRA VE JSON (khong co markdown):
 {{"code": "...", "explanation": "...", "method_name": "...", "return_type": "int"}}
 """.format(desc=problem_description, cls=class_name)
+
         for attempt in range(max_retries):
+            backoff_time = 2 ** attempt  # 1s, 2s, 4s
             try:
                 print("Dang sinh code (lan {}/{})...".format(attempt+1, max_retries))
                 
@@ -52,9 +57,10 @@ TRA VE JSON (khong co markdown):
                         "stream": False,
                         "options": {"temperature": 0.3, "num_predict": 1000}
                     },
-                    timeout=90
+                    timeout=120
                 )
                 
+                response.raise_for_status()
                 result = response.json()
                 generated = json.loads(result.get('response', '{}'))
                 if 'code' in generated and generated['code'].strip():
@@ -64,9 +70,20 @@ TRA VE JSON (khong co markdown):
                     generated['generated_at'] = datetime.now().isoformat()
                     generated['problem_id'] = problem_id
                     return generated
+                else:
+                    print("LLM tra ve code rong, retry sau {}s...".format(backoff_time))
+                    time.sleep(backoff_time)
                     
+            except requests.ConnectionError:
+                print("Khong ket noi duoc Ollama, retry sau {}s...".format(backoff_time))
+                time.sleep(backoff_time)
+            except requests.Timeout:
+                print("Timeout, retry sau {}s...".format(backoff_time))
+                time.sleep(backoff_time)
             except Exception as e:
-                print("Loi: {}".format(e))
+                print("Loi: {}, retry sau {}s...".format(e, backoff_time))
+                time.sleep(backoff_time)
+
         print("Khong the sinh code, dung template")
         return {
             'code': 'package com.example;\n\npublic class {} {{}}'.format(class_name),
@@ -75,6 +92,7 @@ TRA VE JSON (khong co markdown):
             'generated_at': datetime.now().isoformat(),
             'problem_id': problem_id
         }
+
     def save_generated_code(self, problem_id, code_data):
         """Luu code"""
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')

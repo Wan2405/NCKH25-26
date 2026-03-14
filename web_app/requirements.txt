@@ -5,8 +5,5 @@ flask-cors==4.0.0
 # API Calls
 requests==2.31.0
 
-# Data Processing
-pandas==2.1.0
-
 # Utils
 python-dotenv==1.0.0

@@ -35,7 +35,7 @@ class LogProcessor:
             ],
             'test_failed': r'Tests run:\s*(\d+),\s*Failures:\s*(\d+),\s*Errors:\s*(\d+),\s*Skipped:\s*(\d+)',
             'build_success': r'BUILD SUCCESS',
-            'exit_code': r'exit code:\s*(\d+)'
+            'exit_code': r'(?i)exit\s*code:?\s*(\d+)'
         }
     
     def read_log_file(self, log_path="auto_grader/grading_history.txt"):
@@ -174,8 +174,8 @@ class LogProcessor:
             },
             'test_results': test_info,
             'raw_logs': {
-                'stdout': stdout[-2000:],  # Lưu 2000 ký tự cuối
-                'stderr': stderr[-1000:] if stderr else ''
+                'stdout': stdout[-5000:],  # Tăng giới hạn lưu log
+                'stderr': stderr[-3000:] if stderr else ''
             }
         }
         

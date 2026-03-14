@@ -10,26 +10,39 @@ from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 import os
 import json
-from pathlib import Path
+import subprocess
 import sys
+from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(__file__))
-from runner import main as run_test
-from run_feedback_loop import auto_fix_loop
+# Thêm project root vào sys.path để import modules
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, PROJECT_ROOT)
 
 app = Flask(__name__, template_folder='templates')
 CORS(app)
 
-PROBLEMS = {
-    'P001': {
-        'title': 'Tong hai so',
-        'description': 'Viet ham tinhTong(int a, int b) tra ve tong a + b'
-    },
-    'P002': {
-        'title': 'Tinh giai thua',
-        'description': 'Viet ham tinhGiaiThua(int n) tra ve n!'
-    }
-}
+# Tải PROBLEMS từ file JSON hoặc fallback dict
+def load_problems():
+    """Tải danh sách bài tập từ data/problems.json"""
+    json_path = os.path.join(os.path.dirname(__file__), 'data', 'problems.json')
+    try:
+        with open(json_path, 'r', encoding='utf-8') as f:
+            problems_list = json.load(f)
+        # Convert list to dict keyed by id
+        return {p['id']: p for p in problems_list}
+    except Exception:
+        return {
+            'P001': {
+                'title': 'Tong hai so',
+                'description': 'Viet ham tinhTong(int a, int b) tra ve tong a + b'
+            },
+            'P002': {
+                'title': 'Tinh giai thua',
+                'description': 'Viet ham tinhGiaiThua(int n) tra ve n!'
+            }
+        }
+
+PROBLEMS = load_problems()
 
 @app.route('/')
 def index():
@@ -57,7 +70,6 @@ def grade():
         problem_id = data.get('problem_id')
         code = data.get('code')
         student_id = data.get('student_id', 'SV001')
-        use_docker = data.get('use_docker', True)
         use_feedback_loop = data.get('use_feedback_loop', False)
         max_rounds = data.get('max_rounds', 3)
         
@@ -66,34 +78,86 @@ def grade():
             return jsonify({'error': 'Missing problem_id or code'}), 400
         
         if problem_id not in PROBLEMS:
-            return jsonify({'error': f'Unknown problem: {problem_id}'}), 400
+            return jsonify({'error': 'Unknown problem: {}'.format(problem_id)}), 400
         
         # Tạo file code tạm thời
-        temp_code_dir = Path(f"auto_grader/input_code")
-        temp_code_dir.mkdir(parents=True, exist_ok=True)
+        temp_code_dir = os.path.join(PROJECT_ROOT, "auto_grader", "input_code")
+        os.makedirs(temp_code_dir, exist_ok=True)
         
-        temp_code_file = temp_code_dir / f"{problem_id}_Solution.java"
+        temp_code_file = os.path.join(temp_code_dir, "{}_Solution.java".format(problem_id))
         with open(temp_code_file, 'w', encoding='utf-8') as f:
             f.write(code)
         
-        # Chạy test
-        sys.argv = ["runner.py", problem_id, str(temp_code_file), "--student_id", student_id]
-        test_result = run_test()
+        # Chạy runner qua subprocess (an toàn hơn sys.argv hack)
+        runner_result = subprocess.run(
+            [sys.executable, os.path.join(PROJECT_ROOT, 'runner.py'),
+             problem_id, temp_code_file, student_id],
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_ROOT,
+            timeout=180
+        )
+        
+        # Chạy phân loại
+        subprocess.run(
+            [sys.executable, os.path.join(PROJECT_ROOT, 'phan_loai_loi.py')],
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_ROOT,
+            timeout=120
+        )
+        
+        # Chạy feedback
+        subprocess.run(
+            [sys.executable, os.path.join(PROJECT_ROOT, 'tao_feedback.py'), problem_id],
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_ROOT,
+            timeout=120
+        )
         
         result = {
             'problem_id': problem_id,
             'student_id': student_id,
-            'test_result': test_result,
+            'runner_output': runner_result.stdout[-500:] if runner_result.stdout else '',
             'feedback_loop_result': None
         }
         
         # Chạy feedback loop (nếu request)
         if use_feedback_loop:
-            loop_history = auto_fix_loop(problem_id, max_rounds)
-            result['feedback_loop_result'] = loop_history
+            loop_result = subprocess.run(
+                [sys.executable, os.path.join(PROJECT_ROOT, 'run_feedback_loop.py'),
+                 problem_id, '--max-rounds', str(max_rounds)],
+                capture_output=True,
+                text=True,
+                cwd=PROJECT_ROOT,
+                timeout=600
+            )
+            result['feedback_loop_result'] = loop_result.stdout[-1000:] if loop_result.stdout else ''
         
-        return jsonify(result)
+        # Đọc kết quả từ output files
+        results = {}
+        
+        class_dir = Path(os.path.join(PROJECT_ROOT, "auto_grader/output/classifications"))
+        if class_dir.exists():
+            json_files = list(class_dir.glob("*.json"))
+            if json_files:
+                latest = max(json_files, key=lambda x: x.stat().st_mtime)
+                with open(latest, 'r', encoding='utf-8') as f:
+                    results['classification'] = json.load(f)
+        
+        feedback_dir = Path(os.path.join(PROJECT_ROOT, "auto_grader/output/feedback"))
+        if feedback_dir.exists():
+            feedback_files = list(feedback_dir.glob("*{}*.json".format(problem_id)))
+            if feedback_files:
+                latest = max(feedback_files, key=lambda x: x.stat().st_mtime)
+                with open(latest, 'r', encoding='utf-8') as f:
+                    results['feedback'] = json.load(f)
+        
+        return jsonify({'success': True, 'results': results})
     
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Xử lý quá thời gian cho phép'}), 504
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -104,7 +168,7 @@ def get_results(problem_id):
         results = {}
         
         # Lấy classification JSON mới nhất
-        classification_dir = Path("auto_grader/output/classifications")
+        classification_dir = Path(os.path.join(PROJECT_ROOT, "auto_grader/output/classifications"))
         if classification_dir.exists():
             json_files = list(classification_dir.glob("*.json"))
             if json_files:
@@ -113,18 +177,18 @@ def get_results(problem_id):
                     results['classification'] = json.load(f)
         
         # Lấy feedback JSON
-        feedback_dir = Path("auto_grader/output/feedback")
+        feedback_dir = Path(os.path.join(PROJECT_ROOT, "auto_grader/output/feedback"))
         if feedback_dir.exists():
-            feedback_files = list(feedback_dir.glob(f"*{problem_id}*.json"))
+            feedback_files = list(feedback_dir.glob("*{}*.json".format(problem_id)))
             if feedback_files:
                 latest = max(feedback_files, key=lambda x: x.stat().st_mtime)
                 with open(latest, 'r', encoding='utf-8') as f:
                     results['feedback'] = json.load(f)
         
         # Lấy loop history
-        history_dir = Path("auto_grader/output/auto_fix_history")
+        history_dir = Path(os.path.join(PROJECT_ROOT, "auto_grader/output/auto_fix_history"))
         if history_dir.exists():
-            history_files = list(history_dir.glob(f"{problem_id}_*.json"))
+            history_files = list(history_dir.glob("{}_*.json".format(problem_id)))
             if history_files:
                 latest = max(history_files, key=lambda x: x.stat().st_mtime)
                 with open(latest, 'r', encoding='utf-8') as f:
@@ -139,11 +203,11 @@ def get_results(problem_id):
 def get_metrics():
     """GET /api/metrics - Tải CSV metrics"""
     try:
-        metrics_file = Path("auto_grader/output/metrics.csv")
-        if not metrics_file.exists():
+        metrics_file = os.path.join(PROJECT_ROOT, "auto_grader/output/metrics.csv")
+        if not os.path.exists(metrics_file):
             return jsonify({'error': 'Metrics not found'}), 404
         
-        return send_file(str(metrics_file), as_attachment=True)
+        return send_file(metrics_file, as_attachment=True)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

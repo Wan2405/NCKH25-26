@@ -1,5 +1,6 @@
 """
 MODULE FEEDBACK GENERATOR - IMPROVED VERSION
+Tạo gợi ý sửa lỗi từ LLM với retry + exponential backoff
 """
 
 import requests
@@ -21,13 +22,14 @@ class FeedbackGenerator:
         nguyen_nhan = error_analysis.get('nguyen_nhan', 'Unknown')
         chi_tiet = error_analysis.get('chi_tiet', '')
         
+        # Trích xuất phần code quan trọng nếu quá dài
         code_snippet = student_code
-        if len(student_code) > 2000:
+        if len(student_code) > 3000:
             main_idx = student_code.find('public static void main')
             if main_idx > 0:
-                code_snippet = student_code[max(0, main_idx-200):main_idx+1000]
+                code_snippet = student_code[max(0, main_idx-500):main_idx+2000]
             else:
-                code_snippet = student_code[:2000]
+                code_snippet = student_code[:3000]
         
         prompt = "Bạn là Java Tutor. Sinh viên gặp lỗi, hãy hướng dẫn sửa.\n\n"
         prompt += "ĐỀ BÀI:\n"
@@ -37,14 +39,18 @@ class FeedbackGenerator:
         prompt += "\n\nLỖI PHÁT HIỆN:\n"
         prompt += f"- Loại lỗi: {loai_loi}\n"
         prompt += f"- Nguyên nhân: {nguyen_nhan}\n"
-        prompt += f"- Chi tiết: {str(chi_tiet)[:300]}\n\n"
+        # Chuyển chi_tiet thành string an toàn (có thể là list)
+        chi_tiet_str = '\n'.join(chi_tiet) if isinstance(chi_tiet, list) else str(chi_tiet)
+        prompt += f"- Chi tiết: {chi_tiet_str[:500]}\n\n"
         prompt += "YÊU CẦU:\n"
         prompt += "1. Giải thích lỗi ngắn gọn (2-3 câu)\n"
         prompt += "2. Đưa ra code chính xác để sửa\n"
         prompt += "3. Giải thích vì sao\n\n"
         prompt += 'Trả về JSON: {"explanation": "...", "fixed_code": "...", "reasoning": "..."}'
         
+        # Retry với exponential backoff
         for attempt in range(max_retries):
+            backoff_time = 2 ** attempt  # 1s, 2s, 4s
             try:
                 print(f"🤖 Đang gọi LLM (lần {attempt+1}/{max_retries})...")
                 
@@ -55,9 +61,9 @@ class FeedbackGenerator:
                         "prompt": prompt,
                         "format": "json",
                         "stream": False,
-                        "options": {"temperature": 0.3, "num_predict": 500, "top_p": 0.9}
+                        "options": {"temperature": 0.3, "num_predict": 1000, "top_p": 0.9}
                     },
-                    timeout=60
+                    timeout=90
                 )
                 
                 response.raise_for_status()
@@ -76,19 +82,22 @@ class FeedbackGenerator:
                         return feedback
                     else:
                         missing = [f for f in required_fields if f not in feedback]
-                        print(f"⚠️ Thiếu field: {missing}")
-                        time.sleep(1)
+                        print(f"⚠️ Thiếu field: {missing}, retry sau {backoff_time}s...")
+                        time.sleep(backoff_time)
                         
                 except json.JSONDecodeError as e:
-                    print(f"⚠️ Lỗi parse JSON: {e}")
-                    time.sleep(2)
+                    print(f"⚠️ Lỗi parse JSON: {e}, retry sau {backoff_time}s...")
+                    time.sleep(backoff_time)
                     
             except requests.Timeout:
-                print(f"⚠️ Timeout, thử lại...")
-                time.sleep(3)
+                print(f"⚠️ Timeout, retry sau {backoff_time}s...")
+                time.sleep(backoff_time)
+            except requests.ConnectionError:
+                print(f"⚠️ Không kết nối được Ollama, retry sau {backoff_time}s...")
+                time.sleep(backoff_time)
             except Exception as e:
-                print(f"⚠️ Lỗi: {e}")
-                time.sleep(2)
+                print(f"⚠️ Lỗi: {e}, retry sau {backoff_time}s...")
+                time.sleep(backoff_time)
         
         print("❌ Không thể tạo feedback từ LLM")
         return {
@@ -100,6 +109,7 @@ class FeedbackGenerator:
             "model": "fallback",
             "error_type": loai_loi
         }
+
     def save_feedback(self, output_file, feedback_data):
         if 'saved_at' not in feedback_data:
             feedback_data['saved_at'] = datetime.now().isoformat()
