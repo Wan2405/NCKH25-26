@@ -33,10 +33,10 @@ def _extract_main_method(source_code: str) -> bool:
 def _extract_methods(source_code: str) -> list[dict[str, str]]:
     """Extract public method signatures from Java source code.
 
-    Returns list of dicts with keys: return_type, name, params.
+    Returns list of dicts with keys: return_type, name, params, is_static.
     """
     pattern = re.compile(
-        r"public\s+(?:static\s+)?(?P<return_type>\w+)\s+(?P<name>\w+)"
+        r"public\s+(?P<static>static\s+)?(?P<return_type>\w+)\s+(?P<name>\w+)"
         r"\s*\((?P<params>[^)]*)\)",
     )
     methods = []
@@ -49,6 +49,7 @@ def _extract_methods(source_code: str) -> list[dict[str, str]]:
                 "return_type": m.group("return_type"),
                 "name": name,
                 "params": m.group("params").strip(),
+                "is_static": m.group("static") is not None,
             }
         )
     return methods
@@ -125,10 +126,9 @@ def generate_method_tests(
                 description=f"Smoke test for {method['name']}()",
             )
             test_cases.append(tc)
-            is_static = "static" in source_code.split(method["name"])[0].split("\n")[-1]
             call = (
                 f"{class_name}.{method['name']}()"
-                if is_static
+                if method["is_static"]
                 else f"new {class_name}().{method['name']}()"
             )
             test_methods_src.append(
@@ -157,10 +157,9 @@ def generate_method_tests(
                     description=f"Smoke test for {method['name']}({args_combined})",
                 )
                 test_cases.append(tc)
-                is_static = "static" in source_code.split(method["name"])[0].split("\n")[-1]
                 call = (
                     f"{class_name}.{method['name']}({args_combined})"
-                    if is_static
+                    if method["is_static"]
                     else f"new {class_name}().{method['name']}({args_combined})"
                 )
                 test_methods_src.append(
