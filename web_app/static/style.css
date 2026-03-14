@@ -24,29 +24,10 @@ body {
     padding: 0 1rem;
 }
 
-.sidebar {
-    width: 300px;
-    background: white;
-    padding: 1.5rem;
-    border-radius: 10px;
-}
-
-.problem-item {
-    padding: 1rem;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    margin-bottom: 0.5rem;
-    cursor: pointer;
-}
-
-.problem-item:hover {
-    border-color: #667eea;
-    background: #f8f9ff;
-}
-
-.problem-item.active {
-    border-color: #667eea;
-    background: #f0f4ff;
+/* Single-column layout (no sidebar) */
+.container.single-col {
+    display: block;
+    max-width: 900px;
 }
 
 .main {
@@ -54,6 +35,11 @@ body {
     background: white;
     padding: 2rem;
     border-radius: 10px;
+}
+
+.main h2 {
+    margin-bottom: 1rem;
+    color: #333;
 }
 
 textarea {
@@ -64,6 +50,13 @@ textarea {
     border: 1px solid #ddd;
     border-radius: 5px;
     margin: 1rem 0;
+    font-size: 14px;
+    resize: vertical;
+}
+
+textarea:focus {
+    border-color: #667eea;
+    outline: none;
 }
 
 button {
@@ -73,31 +66,12 @@ button {
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
 }
 
 button:hover {
     background: #38a169;
-}
-
-.badge {
-    padding: 0.3rem 0.8rem;
-    border-radius: 12px;
-    font-size: 0.9rem;
-}
-
-.badge.easy {
-    background: #d4edda;
-    color: #155724;
-}
-
-.badge.medium {
-    background: #fff3cd;
-    color: #856404;
-}
-
-.badge.hard {
-    background: #f8d7da;
-    color: #721c24;
 }
 
 .result {
@@ -122,6 +96,7 @@ button:hover {
     white-space: pre-wrap;
     word-wrap: break-word;
     margin-top: 0.5rem;
+    font-size: 13px;
 }
 
 .loading {
@@ -156,13 +131,4 @@ button:hover {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-}
-
-.btn-secondary {
-    background: #667eea;
-    margin-top: 1rem;
-}
-
-.btn-secondary:hover {
-    background: #5568d3;
 }
