@@ -16,6 +16,8 @@ import time
 
 import requests
 
+from llm.code_sanitizer import sanitize_java_code
+
 logger = logging.getLogger(__name__)
 
 
@@ -83,6 +85,9 @@ class LLMClient:
                 payload = response.json()
                 parsed = json.loads(payload.get("response", "{}"))
                 if parsed.get("fixed_code", "").strip():
+                    parsed["fixed_code"] = sanitize_java_code(
+                        parsed["fixed_code"]
+                    )
                     return parsed
                 logger.warning(
                     "LLM returned empty fixed_code, retrying in %ds", backoff
@@ -121,5 +126,8 @@ class LLMClient:
             f"ERROR TYPE: {loai_loi}\n"
             f"REASON: {nguyen_nhan}\n"
             f"DETAILS: {str(chi_tiet)[:500]}\n\n"
+            "IMPORTANT: Return the complete fixed Java source code. "
+            "Do NOT wrap the code in markdown fences (no ```java). "
+            "Do NOT change the public class name.\n\n"
             'Return JSON only: {"fixed_code": "...", "explanation": "...", "reasoning": "..."}'
         )

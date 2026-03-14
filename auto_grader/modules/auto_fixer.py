@@ -4,13 +4,22 @@ MODULE AUTO FIXER - Tự động sửa code cho đến khi pass
 
 import json
 import re
+import sys
+import os
 from datetime import datetime
 from pathlib import Path
+
+# Allow importing from the top-level llm package regardless of working directory
+_ROOT = str(Path(__file__).parent.parent.parent)
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
 
 # Sử dụng relative imports thay vì sys.path hack
 from .log_processor import LogProcessor
 from .error_classifier import ErrorClassifier
 from .feedback_generator import FeedbackGenerator
+
+from llm.code_sanitizer import sanitize_java_code
 
 
 class AutoFixer:
@@ -89,7 +98,9 @@ class AutoFixer:
                 )
 
                 if feedback.get("fixed_code", "").strip():
-                    current_code = feedback["fixed_code"]
+                    current_code = sanitize_java_code(
+                        feedback["fixed_code"], expected_class=class_name
+                    )
                     iteration_data["fixed_code"] = current_code
                     iteration_data["fix_explanation"] = feedback.get("explanation", "")
                     print("LLM đã đề xuất code mới")

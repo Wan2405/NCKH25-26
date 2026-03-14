@@ -20,6 +20,7 @@ from auto_grader.modules.feedback_generator import FeedbackGenerator
 from auto_grader.modules.log_processor import LogProcessor
 from auto_grader.modules.error_classifier import ErrorClassifier
 from auto_grader.docker.run_in_docker import DockerRunner
+from llm.code_sanitizer import sanitize_java_code
 
 # Mapping problem_id → Java class name (compatible with runner convention)
 PROBLEM_CLASS_MAP = {
@@ -90,7 +91,7 @@ def fix_until_pass(problem_id, problem_desc, code0, max_rounds=3):
         if not fixed_code or not fixed_code.strip():
             print("❌ LLM không sinh được code sửa")
             break
-        code = fixed_code
+        code = sanitize_java_code(fixed_code, expected_class=target_class)
 
     print("❌ Không pass sau {} vòng.".format(max_rounds))
     return None
