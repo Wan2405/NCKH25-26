@@ -1,0 +1,10 @@
+{
+  "explanation": "Lỗi này xảy ra vì tên lớp không đúng. Tên lớp phải được viết hoa và trùng với tên file Java. Trong trường hợp này, tên lớp là P001_TongHaiSo nhưng file Java được đặt tên là P001_Solution.java.",
+  "fixed_code": "package com.example;\n\npublic class P001_TongHaiSo {\n    public static int tinhTong(int a, int b) {\n        return a + b;\n    }\n}",
+  "reasoning": "Để sửa lỗi này, chúng ta cần đổi tên lớp và tên file Java để trùng nhau. Ngoài ra, trong phương thức tinhTong, chúng ta cần thay thế dấu trừ (-) bằng dấu cộng (+) để tính tổng hai số.",
+  "generated_at": "2026-03-15T01:13:09.850823",
+  "model": "llama3.1",
+  "error_type": "COMPILE_ERROR",
+  "attempt": 1,
+  "saved_at": "2026-03-15T01:13:09.851158"
+}

@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "timestamp": "2026-02-25T03:19:45.315569",
+    "student_id": "SV001",
+    "problem_id": "P001",
+    "log_file": "auto_grader/grading_history.txt"
+  },
+  "execution": {
+    "exit_code": null,
+    "error_type": "PASSED",
+    "error_detail": "All tests passed"
+  },
+  "test_results": {
+    "total_tests": 10,
+    "passed": 10,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "raw_logs": {
+    "stdout": "get\\classes\n[WARNING] location of system modules is not set in conjunction with -source 17\n  not setting the location of system modules may lead to class files that cannot run on JDK 17\n    --release 17 is recommended instead of -source 17 -target 17 because it sets the location of system modules automatically\n[INFO] \n[INFO] --- resources:3.3.1:testResources (default-testResources) @ grading-system ---\n[INFO] skip non existing resourceDirectory C:\\Users\\ASUS\\Desktop\\NCKH-2526\\auto_grader\\maven_project\\src\\test\\resources\n[INFO] \n[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ grading-system ---\n[INFO] Recompiling the module because of changed dependency.\n[INFO] Compiling 1 source file with javac [debug target 17] to target\\test-classes\n[WARNING] location of system modules is not set in conjunction with -source 17\n  not setting the location of system modules may lead to class files that cannot run on JDK 17\n    --release 17 is recommended instead of -source 17 -target 17 because it sets the location of system modules automatically\n[INFO] \n[INFO] --- surefire:3.0.0:test (default-test) @ grading-system ---\n[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider\n[INFO] \n[INFO] -------------------------------------------------------\n[INFO]  T E S T S\n[INFO] -------------------------------------------------------\n[INFO] Running com.example.P001_TongHaiSoTest\n[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.058 s - in com.example.P001_TongHaiSoTest\n[INFO] \n[INFO] Results:\n[INFO] \n[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0\n[INFO] \n[INFO] ------------------------------------------------------------------------\n[INFO] BUILD SUCCESS\n[INFO] ------------------------------------------------------------------------\n[INFO] Total time:  2.170 s\n[INFO] Finished at: 2026-02-25T03:19:02+07:00\n[INFO] ------------------------------------------------------------------------\n\n--- EXIT CODE: 0 ---",
+    "stderr": ""
+  }
+}

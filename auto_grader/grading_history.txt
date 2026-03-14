@@ -1,0 +1,49 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------------< com.nckh:grading-system >-----------------------
+[INFO] Building grading-system 1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ grading-system ---
+[INFO] Deleting C:\Users\ASUS\Desktop\NCKH-2526\auto_grader\maven_project\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ grading-system ---
+[INFO] skip non existing resourceDirectory C:\Users\ASUS\Desktop\NCKH-2526\auto_grader\maven_project\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ grading-system ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 2 source files with javac [debug target 17] to target\classes
+[INFO] -------------------------------------------------------------
+[WARNING] COMPILATION WARNING : 
+[INFO] -------------------------------------------------------------
+[WARNING] location of system modules is not set in conjunction with -source 17
+  not setting the location of system modules may lead to class files that cannot run on JDK 17
+    --release 17 is recommended instead of -source 17 -target 17 because it sets the location of system modules automatically
+[INFO] 1 warning
+[INFO] -------------------------------------------------------------
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_Solution.java:[1,8] class P001_TongHaiSo is public, should be declared in a file named P001_TongHaiSo.java
+[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_TongHaiSo.java:[1,8] duplicate class: P001_TongHaiSo
+[INFO] 2 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  1.029 s
+[INFO] Finished at: 2026-03-15T01:12:28+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:compile (default-compile) on project grading-system: Compilation failure: Compilation failure: 
+[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_Solution.java:[1,8] class P001_TongHaiSo is public, should be declared in a file named P001_TongHaiSo.java
+[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_TongHaiSo.java:[1,8] duplicate class: P001_TongHaiSo
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+
+--- EXIT CODE: 1 ---

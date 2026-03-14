@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Grader - Grade & Fix Code</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        select, textarea, input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        textarea {
+            min-height: 300px;
+            resize: vertical;
+        }
+        
+        textarea:focus, select:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            margin: 0;
+            font-weight: 400;
+        }
+        
+        .checkbox-group input {
+            margin-right: 8px;
+            width: auto;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .result.show {
+            display: block;
+        }
+        
+        .result-item {
+            margin-bottom: 15px;
+        }
+        
+        .result-label {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .result-value {
+            background: white;
+            padding: 10px;
+            border-left: 4px solid #667eea;
+            margin-top: 5px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner.show {
+            display: block;
+        }
+        
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .error.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Auto Grader</h1>
+        <p class="subtitle">Grade & Fix Java Code with Docker + LLM</p>
+        
+        <form id="gradeForm">
+            <div class="form-group">
+                <label for="problemSelect">Chọn bài tập</label>
+                <select id="problemSelect" required>
+                    <option value="">-- Chọn bài tập --</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="codeInput">Code Java</label>
+                <textarea id="codeInput" placeholder="Paste your Java code here..." required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="studentId">Student ID</label>
+                <input type="text" id="studentId" value="SV001" required>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="useDocker" checked>
+                        Sử dụng Docker
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="useFeedbackLoop">
+                        Auto-fix Loop
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="maxRounds">Max Rounds</label>
+                    <input type="number" id="maxRounds" value="3" min="1" max="10">
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button type="submit" class="btn-primary">📊 Grade Code</button>
+                <button type="button" class="btn-secondary" onclick="downloadMetrics()">📥 Tải Metrics</button>
+                <button type="button" class="btn-secondary" onclick="clearForm()">🗑️ Clear</button>
+            </div>
+        </form>
+        
+        <div class="spinner" id="spinner">
+            <p>⏳ Đang xử lý... (có thể mất 1-2 phút)</p>
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <div class="result" id="result">
+            <h2>📋 Kết quả</h2>
+            
+            <div class="result-item">
+                <div class="result-label">Loại lỗi</div>
+                <div class="result-value" id="errorType">-</div>
+            </div>
+            
+            <div class="result-item">
+                <div class="result-label">Nguyên nhân</div>
+                <div class="result-value" id="errorReason">-</div>
+            </div>
+            
+            <div class="result-item">
+                <div class="result-label">Feedback</div>
+                <div class="result-value" id="feedback">-</div>
+            </div>
+            
+            <div class="result-item" id="loopResultContainer" style="display: none;">
+                <div class="result-label">Auto-fix Loop Result</div>
+                <div class="result-value" id="loopResult">-</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Load problems
+        async function loadProblems() {
+            const response = await fetch('/api/problems');
+            const problems = await response.json();
+            const select = document.getElementById('problemSelect');
+            
+            for (const [id, info] of Object.entries(problems)) {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = `${id}: ${info.title}`;
+                select.appendChild(option);
+            }
+        }
+        
+        // Submit form
+        document.getElementById('gradeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const problemId = document.getElementById('problemSelect').value;
+            const code = document.getElementById('codeInput').value;
+            const studentId = document.getElementById('studentId').value;
+            const useDocker = document.getElementById('useDocker').checked;
+            const useFeedbackLoop = document.getElementById('useFeedbackLoop').checked;
+            const maxRounds = parseInt(document.getElementById('maxRounds').value);
+            
+            // Validation
+            if (!problemId || !code) {
+                showError('Vui lòng chọn bài tập và nhập code');
+                return;
+            }
+            
+            // Show spinner
+            document.getElementById('spinner').classList.add('show');
+            document.getElementById('error').classList.remove('show');
+            document.getElementById('result').classList.remove('show');
+            
+            try {
+                const response = await fetch('/api/grade', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        problem_id: problemId,
+                        code: code,
+                        student_id: studentId,
+                        use_docker: useDocker,
+                        use_feedback_loop: useFeedbackLoop,
+                        max_rounds: maxRounds
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Get detailed results
+                    const detailResponse = await fetch(`/api/results/${problemId}`);
+                    const details = await detailResponse.json();
+                    
+                    displayResults(details, result);
+                } else {
+                    showError(result.error || 'Đã xảy ra lỗi');
+                }
+            } catch (err) {
+                showError('Network error: ' + err.message);
+            } finally {
+                document.getElementById('spinner').classList.remove('show');
+            }
+        });
+        
+        function displayResults(details, result) {
+            const classification = details.classification || {};
+            const feedback = details.feedback || {};
+            const loopHistory = details.loop_history || [];
+            
+            document.getElementById('errorType').textContent = 
+                classification.loai_loi || result.test_result?.execution?.error_type || 'Unknown';
+            
+            document.getElementById('errorReason').textContent = 
+                classification.nguyen_nhan || 'N/A';
+            
+            document.getElementById('feedback').textContent = 
+                feedback.explanation || feedback.goi_y || 'No feedback';
+            
+            if (loopHistory && loopHistory.length > 0) {
+                document.getElementById('loopResultContainer').style.display = 'block';
+                const summary = loopHistory.map((h, i) => 
+                    `Vòng ${h.round}: ${h.status} (${h.error_type})`
+                ).join('\n');
+                document.getElementById('loopResult').textContent = summary;
+            }
+            
+            document.getElementById('result').classList.add('show');
+        }
+        
+        function showError(msg) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = msg;
+            errorEl.classList.add('show');
+        }
+        
+        function clearForm() {
+            document.getElementById('gradeForm').reset();
+            document.getElementById('result').classList.remove('show');
+            document.getElementById('error').classList.remove('show');
+        }
+        
+        async function downloadMetrics() {
+            try {
+                const response = await fetch('/api/metrics');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'metrics.csv';
+                    a.click();
+                } else {
+                    showError('Chưa có metrics');
+                }
+            } catch (err) {
+                showError('Error: ' + err.message);
+            }
+        }
+        
+        // Load problems on page load
+        loadProblems();
+    </script>
+</body>
+</html>

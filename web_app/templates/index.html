@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Grader - LLM Powered</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 Auto Grader - LLM Powered</h1>
+        <p>Hệ thống chấm bài tự động với AI</p>
+    </div>
+
+    <div class="container">
+        <aside class="sidebar">
+            <h2>📚 Danh sách bài tập</h2>
+            <div id="problemList">
+                <p>Đang tải...</p>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div id="problemView">
+                <h2>👈 Chọn một bài tập để bắt đầu</h2>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
