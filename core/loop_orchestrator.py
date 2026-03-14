@@ -69,10 +69,9 @@ class LoopOrchestrator:
 
     def run(
         self,
-        problem_id: str,
         initial_code: str,
-        problem_description: str,
         class_name: str = "Solution",
+        problem_description: str = "",
         student_id: str = "SV001",
     ) -> dict:
         """
@@ -85,7 +84,6 @@ class LoopOrchestrator:
                 "rounds":     int,
                 "final_code": str,
                 "history":    list[dict],
-                "problem_id": str,
             }
         """
         current_code = initial_code
@@ -108,7 +106,7 @@ class LoopOrchestrator:
             raw_log = self.docker_manager.compile_and_test(self.workspace_path)
 
             # 3. Parse log
-            log_data = self.log_processor.process(raw_log, student_id, problem_id)
+            log_data = self.log_processor.process(raw_log, student_id)
 
             # 4. Classify
             classification = self.error_classifier.classify(log_data)
@@ -133,7 +131,6 @@ class LoopOrchestrator:
                     success=True,
                     history=history,
                     final_code=current_code,
-                    problem_id=problem_id,
                 )
 
             if round_num == self.max_rounds:
@@ -158,7 +155,6 @@ class LoopOrchestrator:
             success=False,
             history=history,
             final_code=current_code,
-            problem_id=problem_id,
         )
 
     # ------------------------------------------------------------------
@@ -183,21 +179,19 @@ class LoopOrchestrator:
         success: bool,
         history: list[dict],
         final_code: str,
-        problem_id: str,
     ) -> dict:
         result = {
             "success": success,
             "rounds": len(history),
             "final_code": final_code,
             "history": history,
-            "problem_id": problem_id,
         }
-        self._persist_history(problem_id, result)
+        self._persist_history(result)
         return result
 
-    def _persist_history(self, problem_id: str, result: dict) -> None:
+    def _persist_history(self, result: dict) -> None:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        out = self.history_dir / f"{problem_id}_loop_{ts}.json"
+        out = self.history_dir / f"loop_{ts}.json"
         with open(out, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2, ensure_ascii=False)
         print(f"[+] History saved → {out}")

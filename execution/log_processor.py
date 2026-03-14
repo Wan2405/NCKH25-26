@@ -22,7 +22,7 @@ class LogProcessor:
     def __init__(self, output_dir: str = "auto_grader/output/logs") -> None:
         self._inner = _LogProcessor(output_dir=output_dir)
 
-    def process(self, raw_log: str, student_id: str, problem_id: str) -> dict:
+    def process(self, raw_log: str, student_id: str = "SV001") -> dict:
         """
         Save *raw_log* to a temporary file, delegate to the underlying
         :class:`~auto_grader.modules.log_processor.LogProcessor`, and return
@@ -43,7 +43,6 @@ class LogProcessor:
             result = self._inner.process_log(
                 log_path=tmp_path,
                 student_id=student_id,
-                problem_id=problem_id,
             )
             return result
         finally:

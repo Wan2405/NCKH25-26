@@ -14,20 +14,17 @@ run_feedback_loop.py
 
 Usage
 -----
-    python run_feedback_loop.py <problem_id> [options]
+    python run_feedback_loop.py --workspace <path> [--max-rounds N]
 
 Options
 -------
+    --workspace DIR  Path to the Maven project workspace containing the
+                     corrupted Java source and pom.xml (required).
     --max-rounds N   Maximum number of fix iterations (default: 3).
-    --workspace DIR  Path to the Maven project used as the sandbox
-                     (default: workspace).
-    --code FILE      Path to the initial Java source file.
-                     Defaults to auto_grader/input_code/<class>.java
-                     when omitted.
 
 Example
 -------
-    python run_feedback_loop.py P001 --max-rounds 5
+    python run_feedback_loop.py --workspace ./test_workspace --max-rounds 3
 """
 
 from __future__ import annotations
@@ -58,46 +55,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Problem catalogue
-# ---------------------------------------------------------------------------
-PROBLEMS: dict[str, dict] = {
-    "P001": {
-        "title": "Tong hai so",
-        "description": "Viet ham tinhTong(int a, int b) tra ve tong a + b",
-        "class_name": "Solution",
-        "default_code": "auto_grader/input_code/P001_TongHaiSo.java",
-    },
-    "P002": {
-        "title": "Tinh giai thua",
-        "description": "Viet ham tinhGiaiThua(int n) tra ve n!",
-        "class_name": "Solution",
-        "default_code": "auto_grader/input_code/P002_TinhGiaiThua.java",
-    },
-    "P003": {
-        "title": "Kiem tra so nguyen to",
-        "description": "Viet ham kiemTraNguyenTo(int n) tra ve true neu n la so nguyen to",
-        "class_name": "Solution",
-        "default_code": "auto_grader/input_code/P003_KiemTraNguyenTo.java",
-    },
-    "P004": {
-        "title": "Tim max trong mang",
-        "description": "Viet ham timMax(int[] arr) tra ve phan tu lon nhat",
-        "class_name": "Solution",
-        "default_code": "auto_grader/input_code/P004_TimMax.java",
-    },
-    "P005": {
-        "title": "Dao nguoc chuoi",
-        "description": "Viet ham daoNguoc(String s) tra ve chuoi dao nguoc",
-        "class_name": "Solution",
-        "default_code": "auto_grader/input_code/P005_DaoNguocChuoi.java",
-    },
-}
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _find_java_source(workspace: str) -> str | None:
+    """Return the first .java file found under workspace/src/main/java/."""
+    src_root = os.path.join(workspace, "src", "main", "java")
+    if not os.path.isdir(src_root):
+        return None
+    for dirpath, _, filenames in os.walk(src_root):
+        for fname in filenames:
+            if fname.endswith(".java"):
+                return os.path.join(dirpath, fname)
+    return None
+
 
 def _load_code(code_path: str) -> str:
     with open(code_path, "r", encoding="utf-8") as f:
@@ -117,51 +90,46 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="AI-in-the-loop automated Java debugging pipeline (CLI)"
     )
-    parser.add_argument("problem_id", help="Problem ID, e.g. P001")
+    parser.add_argument(
+        "--workspace",
+        required=True,
+        help=(
+            "Path to the Maven project workspace containing the corrupted "
+            "Java source file and pom.xml"
+        ),
+    )
     parser.add_argument(
         "--max-rounds",
         type=int,
         default=3,
         help="Maximum fix iterations (default: 3)",
     )
-    parser.add_argument(
-        "--workspace",
-        default="workspace",
-        help="Path to Maven project workspace (default: workspace)",
-    )
-    parser.add_argument(
-        "--code",
-        default=None,
-        help="Path to initial Java source file",
-    )
     args = parser.parse_args(argv)
 
-    problem_id = args.problem_id
-    if problem_id not in PROBLEMS:
-        print(f"[!] Unknown problem: {problem_id}")
-        print("Available problems:")
-        for pid, info in PROBLEMS.items():
-            print(f"  {pid}: {info['title']}")
+    workspace = args.workspace
+
+    if not os.path.isdir(workspace):
+        print(f"[!] Workspace directory not found: {workspace!r}")
         return 1
 
-    problem = PROBLEMS[problem_id]
-
-    # Resolve initial code file
-    code_path = args.code or problem.get("default_code", "")
-    if not code_path or not os.path.exists(code_path):
-        print(f"[!] Code file not found: {code_path!r}")
+    # Locate the Java source file inside the workspace
+    code_path = _find_java_source(workspace)
+    if not code_path:
+        print(
+            f"[!] No .java file found under {workspace}/src/main/java/. "
+            "Please ensure the workspace contains your Java source."
+        )
         return 1
 
     initial_code = _load_code(code_path)
-    class_name = _extract_class_name(initial_code) or problem["class_name"]
+    class_name = _extract_class_name(initial_code)
 
     print("=" * 70)
     print("[*] NCKH25-26  AI-in-the-loop Automated Debugging Pipeline")
     print("=" * 70)
-    print(f"Problem   : {problem_id} – {problem['title']}")
+    print(f"Workspace : {workspace}")
     print(f"Code file : {code_path}")
     print(f"Class name: {class_name}")
-    print(f"Workspace : {args.workspace}")
     print(f"Max rounds: {args.max_rounds}")
     print("=" * 70)
 
@@ -176,14 +144,12 @@ def main(argv: list[str] | None = None) -> int:
         log_processor=log_processor,
         error_classifier=error_classifier,
         llm_client=llm_client,
-        workspace_path=args.workspace,
+        workspace_path=workspace,
         max_rounds=args.max_rounds,
     )
 
     result = orchestrator.run(
-        problem_id=problem_id,
         initial_code=initial_code,
-        problem_description=problem["description"],
         class_name=class_name,
     )
 
