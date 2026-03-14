@@ -1,9 +1,0 @@
-# Web Framework
-flask==3.0.0
-flask-cors==4.0.0
-
-# API Calls
-requests==2.31.0
-
-# Utils
-python-dotenv==1.0.0

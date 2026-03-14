@@ -1,218 +1,206 @@
 """
-AUTO-FIX LOOP - Tự động sửa lỗi nhiều vòng (với Docker)
-Vòng lặp: test (Docker) → phân loại → sửa (LLM) → test lại (Docker) → lặp tới k vòng
+run_feedback_loop.py
+====================
+CLI entry point for the AI-in-the-loop automated debugging pipeline.
+
+Architecture
+------------
+run_feedback_loop.py
+  └─ core/loop_orchestrator.py  (LoopOrchestrator)
+       ├─ core/docker_manager.py    (DockerManager  – Python Docker SDK)
+       ├─ execution/log_processor.py (LogProcessor)
+       ├─ execution/error_classifier.py (ErrorClassifier)
+       └─ llm/llm_client.py         (LLMClient – Ollama Llama 3.1)
+
+Usage
+-----
+    python run_feedback_loop.py <problem_id> [options]
+
+Options
+-------
+    --max-rounds N   Maximum number of fix iterations (default: 3).
+    --workspace DIR  Path to the Maven project used as the sandbox
+                     (default: workspace).
+    --code FILE      Path to the initial Java source file.
+                     Defaults to auto_grader/input_code/<class>.java
+                     when omitted.
+
+Example
+-------
+    python run_feedback_loop.py P001 --max-rounds 5
 """
 
-import sys
+from __future__ import annotations
+
+import argparse
+import logging
 import os
-import json
-from pathlib import Path
+import re
+import sys
 
-import subprocess
+# ---------------------------------------------------------------------------
+# Ensure top-level packages (core/, execution/, llm/) are importable when the
+# script is run from any working directory.
+# ---------------------------------------------------------------------------
+_ROOT = os.path.dirname(os.path.abspath(__file__))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
 
-sys.path.insert(0, os.path.dirname(__file__))
-from auto_grader.modules.feedback_generator import FeedbackGenerator
-from auto_grader.modules.log_processor import LogProcessor
-from auto_grader.modules.error_classifier import ErrorClassifier
+from core.docker_manager import DockerManager
+from core.loop_orchestrator import LoopOrchestrator
+from execution.log_processor import LogProcessor
+from execution.error_classifier import ErrorClassifier
+from llm.llm_client import LLMClient
 
-PROBLEMS = {
-    'P001': {
-        'title': 'Tong hai so',
-        'description': 'Viet ham tinhTong(int a, int b) tra ve tong a + b',
-        'input_file': 'auto_grader/input_code/P001_TongHaiSo.java'
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Problem catalogue
+# ---------------------------------------------------------------------------
+PROBLEMS: dict[str, dict] = {
+    "P001": {
+        "title": "Tong hai so",
+        "description": "Viet ham tinhTong(int a, int b) tra ve tong a + b",
+        "class_name": "Solution",
+        "default_code": "auto_grader/input_code/P001_TongHaiSo.java",
     },
-    'P002': {
-        'title': 'Tinh giai thua',
-        'description': 'Viet ham tinhGiaiThua(int n) tra ve n!',
-        'input_file': 'auto_grader/input_code/P002_TinhGiaiThua.java'
+    "P002": {
+        "title": "Tinh giai thua",
+        "description": "Viet ham tinhGiaiThua(int n) tra ve n!",
+        "class_name": "Solution",
+        "default_code": "auto_grader/input_code/P002_TinhGiaiThua.java",
     },
-    'P003': {
-        'title': 'Kiem tra so nguyen to',
-        'description': 'Viet ham kiemTraNguyenTo(int n) tra ve true neu n la so nguyen to',
-        'input_file': 'auto_grader/input_code/P003_KiemTraNguyenTo.java'
+    "P003": {
+        "title": "Kiem tra so nguyen to",
+        "description": "Viet ham kiemTraNguyenTo(int n) tra ve true neu n la so nguyen to",
+        "class_name": "Solution",
+        "default_code": "auto_grader/input_code/P003_KiemTraNguyenTo.java",
     },
-    'P004': {
-        'title': 'Tim max trong mang',
-        'description': 'Viet ham timMax(int[] arr) tra ve phan tu lon nhat',
-        'input_file': 'auto_grader/input_code/P004_TimMax.java'
+    "P004": {
+        "title": "Tim max trong mang",
+        "description": "Viet ham timMax(int[] arr) tra ve phan tu lon nhat",
+        "class_name": "Solution",
+        "default_code": "auto_grader/input_code/P004_TimMax.java",
     },
-    'P005': {
-        'title': 'Dao nguoc chuoi',
-        'description': 'Viet ham daoNguoc(String s) tra ve chuoi dao nguoc',
-        'input_file': 'auto_grader/input_code/P005_DaoNguocChuoi.java'
+    "P005": {
+        "title": "Dao nguoc chuoi",
+        "description": "Viet ham daoNguoc(String s) tra ve chuoi dao nguoc",
+        "class_name": "Solution",
+        "default_code": "auto_grader/input_code/P005_DaoNguocChuoi.java",
     },
 }
 
-def read_latest_classification():
-    """
-    Đọc kết quả phân loại lỗi từ file JSON mới nhất
-    """
-    classification_dir = Path("auto_grader/output/classifications")
-    classification_dir.mkdir(parents=True, exist_ok=True)
-    
-    json_files = list(classification_dir.glob("*.json"))
-    
-    if not json_files:
-        return {
-            'loai_loi': 'Unknown',
-            'nguyen_nhan': 'Chưa phân loại',
-            'goi_y': ''
-        }
-    
-    latest = max(json_files, key=lambda x: x.stat().st_mtime)
-    
-    with open(latest, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    
-    return data.get("classification", {})
 
-def auto_fix_loop(problem_id, max_rounds=3):
-    """
-    Vòng lặp auto-fix với Docker:
-    Vòng 1: test (Docker) → phân loại lỗi → sửa (LLM)
-    Vòng 2: test code mới (Docker) → phân loại lỗi → sửa (LLM)
-    ... lặp tới khi pass hoặc hết max_rounds
-    """
-    
-    print("=" * 70)
-    print("[*] AUTO-FIX LOOP - START (với Docker)")
-    print("=" * 70)
-    
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _load_code(code_path: str) -> str:
+    with open(code_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def _extract_class_name(code: str) -> str:
+    m = re.search(r"public\s+class\s+(\w+)", code)
+    return m.group(1) if m else "Solution"
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="AI-in-the-loop automated Java debugging pipeline (CLI)"
+    )
+    parser.add_argument("problem_id", help="Problem ID, e.g. P001")
+    parser.add_argument(
+        "--max-rounds",
+        type=int,
+        default=3,
+        help="Maximum fix iterations (default: 3)",
+    )
+    parser.add_argument(
+        "--workspace",
+        default="workspace",
+        help="Path to Maven project workspace (default: workspace)",
+    )
+    parser.add_argument(
+        "--code",
+        default=None,
+        help="Path to initial Java source file",
+    )
+    args = parser.parse_args(argv)
+
+    problem_id = args.problem_id
     if problem_id not in PROBLEMS:
-        print(f"[!] Không tìm thấy bài: {problem_id}")
-        return []
-    
-    problem = PROBLEMS[problem_id]
-    code_file = problem['input_file']
-    
-    if not os.path.exists(code_file):
-        print(f"[!] Không tìm thấy file: {code_file}")
-        return []
-    
-    with open(code_file, 'r', encoding='utf-8') as f:
-        original_code = f.read()
-    
-    current_code = original_code
-    feedback_gen = FeedbackGenerator()
-    history = []
-    
-    for round_num in range(1, max_rounds + 1):
-        print(f"\n🟡 VÒNG {round_num}/{max_rounds}")
-        print("-" * 70)
-        
-        # BƯỚC 1: Test code hiện tại (🐳 QUA DOCKER)
-        print(f"[*] Đang chạy test (🐳 Docker)...")
-        runner_result = subprocess.run(
-            [sys.executable, os.path.join(os.path.dirname(__file__), "runner.py"),
-             problem_id, code_file, "SV001"],
-            cwd=os.path.dirname(__file__) or "."
-        )
-        if runner_result.returncode != 0:
-            print(f"[!] Runner thoát với code {runner_result.returncode}")
-        
-        # BƯỚC 2: Phân loại lỗi
-        print(f"[*] Đang phân loại lỗi...")
-        subprocess.run(
-            [sys.executable, "phan_loai_loi.py"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-        error_result = read_latest_classification()
-        
-        # BƯỚC 3: Kiểm tra pass chưa?
-        if error_result.get('loai_loi') == 'PASSED':
-            print(f"\n✅ PASSED SAU {round_num} VÒNG!")
-            history.append({
-                'round': round_num,
-                'status': 'PASSED',
-                'error_type': 'PASSED',
-                'run_in_docker': True
-            })
-            break
-        
-        # BƯỚC 4: Sinh sửa lỗi từ LLM
-        print(f"[*] Lỗi: {error_result.get('loai_loi', 'Unknown')}")
-        print(f"[*] Gọi LLM sửa code...")
-        
-        suggestion = feedback_gen.generate_fix_suggestion(
-            current_code,
-            error_result,
-            problem['description']
-        )
-        
-        # BƯỚC 5: Cập nhật code
-        fixed_code = suggestion.get('fixed_code', None)
-        
-        if not fixed_code or fixed_code.strip() == '':
-            print(f"[!] LLM không sinh được code sửa, dừng loop")
-            history.append({
-                'round': round_num,
-                'status': 'FAILED_TO_FIX',
-                'error_type': error_result.get('loai_loi', 'Unknown'),
-                'run_in_docker': True
-            })
-            break
-        
-        # Ghi code mới vào file
-        with open(code_file, 'w', encoding='utf-8') as f:
-            f.write(fixed_code)
-        
-        current_code = fixed_code
-        print(f"[+] Đã cập nhật code (bản sửa lần {round_num})")
-        
-        history.append({
-            'round': round_num,
-            'status': 'FIXED',
-            'error_type': error_result.get('loai_loi', 'Unknown'),
-            'explanation': suggestion.get('explanation', '')[:100],
-            'run_in_docker': True
-        })
-    
-    # Kết thúc loop
-    print("\n" + "=" * 70)
-    print("[*] AUTO-FIX LOOP - KẾT THÚC")
-    print("=" * 70)
-    
-    # Lưu lịch sử
-    history_dir = Path("auto_grader/output/auto_fix_history")
-    history_dir.mkdir(parents=True, exist_ok=True)
-    
-    history_file = history_dir / f"{problem_id}_loop_history.json"
-    
-    with open(history_file, 'w', encoding='utf-8') as f:
-        json.dump(history, f, indent=2, ensure_ascii=False)
-    
-    print(f"\n[+] Lịch sử loop đã lưu: {history_file}")
-    print(f"\n📊 Tổng cộng: {len(history)} vòng")
-    for h in history:
-        docker_tag = "🐳" if h.get('run_in_docker') else ""
-        print(f"  Vòng {h['round']}: {h['status']} ({h.get('error_type', 'N/A')}) {docker_tag}")
-    
-    # Khôi phục code gốc nếu không pass
-    if history and history[-1]['status'] != 'PASSED':
-        with open(code_file, 'w', encoding='utf-8') as f:
-            f.write(original_code)
-        print(f"\n[*] Code đã khôi phục về version gốc")
-    
-    return history
-
-def main():
-    if len(sys.argv) < 2:
-        print("[!] Cách dùng: python run_feedback_loop.py P001 [--max-rounds 3]")
-        print("\nDanh sách bài tập:")
+        print(f"[!] Unknown problem: {problem_id}")
+        print("Available problems:")
         for pid, info in PROBLEMS.items():
-            print(f"  - {pid}: {info['title']}")
-        sys.exit(1)
-    
-    problem_id = sys.argv[1]
-    max_rounds = 3
-    
-    if '--max-rounds' in sys.argv:
-        idx = sys.argv.index('--max-rounds')
-        if idx + 1 < len(sys.argv):
-            max_rounds = int(sys.argv[idx + 1])
-    
-    auto_fix_loop(problem_id, max_rounds)
+            print(f"  {pid}: {info['title']}")
+        return 1
+
+    problem = PROBLEMS[problem_id]
+
+    # Resolve initial code file
+    code_path = args.code or problem.get("default_code", "")
+    if not code_path or not os.path.exists(code_path):
+        print(f"[!] Code file not found: {code_path!r}")
+        return 1
+
+    initial_code = _load_code(code_path)
+    class_name = _extract_class_name(initial_code) or problem["class_name"]
+
+    print("=" * 70)
+    print("[*] NCKH25-26  AI-in-the-loop Automated Debugging Pipeline")
+    print("=" * 70)
+    print(f"Problem   : {problem_id} – {problem['title']}")
+    print(f"Code file : {code_path}")
+    print(f"Class name: {class_name}")
+    print(f"Workspace : {args.workspace}")
+    print(f"Max rounds: {args.max_rounds}")
+    print("=" * 70)
+
+    # Build pipeline components
+    docker_manager = DockerManager()
+    log_processor = LogProcessor()
+    error_classifier = ErrorClassifier(use_llm=True)
+    llm_client = LLMClient()
+
+    orchestrator = LoopOrchestrator(
+        docker_manager=docker_manager,
+        log_processor=log_processor,
+        error_classifier=error_classifier,
+        llm_client=llm_client,
+        workspace_path=args.workspace,
+        max_rounds=args.max_rounds,
+    )
+
+    result = orchestrator.run(
+        problem_id=problem_id,
+        initial_code=initial_code,
+        problem_description=problem["description"],
+        class_name=class_name,
+    )
+
+    # Summary
+    print("\n" + "=" * 70)
+    print("SUMMARY")
+    print("=" * 70)
+    status = "PASSED" if result["success"] else "FAILED"
+    print(f"Status    : {status}")
+    print(f"Rounds    : {result['rounds']}")
+    for h in result["history"]:
+        tag = "✅" if h["status"] == "PASSED" else "❌"
+        print(f"  Round {h['round']}: {h['error_type']} {tag}")
+    print("=" * 70)
+
+    return 0 if result["success"] else 1
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
