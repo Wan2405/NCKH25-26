@@ -1,6 +1,15 @@
 """
-MODULE LOG PROCESSOR - Task 8-9
-Xử lý log thô từ grading_history.txt thành JSON chuẩn hóa
+log_processor.py
+
+Mục đích:
+    Xử lý log thô từ Maven/JUnit và chuyển thành JSON chuẩn hóa.
+    Giúp các module khác dễ phân tích kết quả test.
+
+Cách hoạt động:
+    1. Đọc file log
+    2. Dùng regex tìm các pattern lỗi (compile error, runtime error, ...)
+    3. Trích xuất thông tin test (pass/fail/error)
+    4. Tạo dict có cấu trúc và lưu JSON
 """
 
 import re
@@ -10,25 +19,28 @@ from pathlib import Path
 
 class LogProcessor:
     """
-    Xử lý log từ Maven/JUnit
+    Xử lý log Maven/JUnit.
+    
+    Tham số:
+        output_dir: Thư mục lưu file JSON output
     """
     
     def __init__(self, output_dir="auto_grader/output/logs"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Regex patterns
+        # Các regex pattern để nhận diện loại lỗi
         self.patterns = {
             'compile_error': [
-                r'COMPILATION ERROR',
-                r'\[ERROR\].*\.java:\[\d+,\d+\]',
-                r'cannot find symbol',
+                r'COMPILATION ERROR',               # Lỗi compile chung
+                r'\[ERROR\].*\.java:\[\d+,\d+\]',   # Lỗi tại dòng cụ thể
+                r'cannot find symbol',              # Không tìm thấy biến/method
                 r'class, interface, or enum expected',
                 r'illegal start of expression'
             ],
             'runtime_error': [
-                r'Exception in thread',
-                r'at\s+[\w\.]+\([^\)]+\.java:\d+\)',
+                r'Exception in thread',             # Exception runtime
+                r'at\s+[\w\.]+\([^\)]+\.java:\d+\)',  # Stack trace
                 r'NullPointerException',
                 r'ArrayIndexOutOfBoundsException',
                 r'ArithmeticException'
@@ -39,7 +51,7 @@ class LogProcessor:
         }
     
     def read_log_file(self, log_path="auto_grader/grading_history.txt"):
-        """Đọc file log - SỬA LỖI: Thêm method này"""
+        """Đọc file log và trả về nội dung."""
         try:
             with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
@@ -55,10 +67,16 @@ class LogProcessor:
             return None, "Lỗi đọc file: {}".format(str(e))
     
     def extract_error_type(self, log_text):
-        """Xác định loại lỗi"""
+        """
+        Xác định loại lỗi từ nội dung log.
         
-        # Kiểm tra BUILD SUCCESS
+        Trả về tuple (loại_lỗi, chi_tiết).
+        Các loại: PASSED, COMPILE_ERROR, RUNTIME_ERROR, TEST_FAILED, UNKNOWN
+        """
+        
+        # Kiểm tra BUILD SUCCESS trước
         if re.search(self.patterns['build_success'], log_text):
+            # Nếu build thành công, kiểm tra kết quả test
             test_match = re.search(self.patterns['test_failed'], log_text)
             if test_match:
                 failures = int(test_match.group(2))
@@ -74,12 +92,12 @@ class LogProcessor:
             if re.search(pattern, log_text, re.IGNORECASE):
                 return 'COMPILE_ERROR', self._extract_compile_error_detail(log_text)
         
-        # Kiểm tra runtime error
+        # Kiểm tra runtime error (exception khi chạy)
         for pattern in self.patterns['runtime_error']:
             if re.search(pattern, log_text):
                 return 'RUNTIME_ERROR', self._extract_runtime_error_detail(log_text)
         
-        # Kiểm tra test failed
+        # Kiểm tra test failed (có thể không có BUILD SUCCESS)
         test_match = re.search(self.patterns['test_failed'], log_text)
         if test_match:
             failures = int(test_match.group(2))
@@ -90,30 +108,32 @@ class LogProcessor:
         return 'UNKNOWN', 'Không xác định được loại lỗi'
     
     def _extract_compile_error_detail(self, log_text):
-        """Trích xuất chi tiết lỗi compile"""
+        """Trích xuất chi tiết lỗi compile (lấy tối đa 3 lỗi đầu)."""
         errors = []
         lines = log_text.split('\n')
         
         for i, line in enumerate(lines):
             if '[ERROR]' in line and '.java:' in line:
+                # Lấy 3 dòng liên tiếp để có ngữ cảnh
                 context = '\n'.join(lines[i:i+3])
                 errors.append(context.strip())
         
         return errors[:3] if errors else ['Lỗi compile không xác định']
     
     def _extract_runtime_error_detail(self, log_text):
-        """Trích xuất stack trace"""
+        """Trích xuất stack trace từ runtime error."""
         lines = log_text.split('\n')
         
         for i, line in enumerate(lines):
             if 'Exception' in line:
+                # Lấy 10 dòng tiếp theo làm stack trace
                 stack_trace = '\n'.join(lines[i:min(i+10, len(lines))])
                 return stack_trace
         
         return 'Runtime error không có stack trace'
     
     def _extract_test_details(self, log_text):
-        """Trích xuất thông tin test cases"""
+        """Trích xuất thống kê test: tổng số, pass, fail, error, skipped."""
         test_info = {
             'total_tests': 0,
             'passed': 0,
@@ -134,15 +154,23 @@ class LogProcessor:
     
     def process_log(self, log_path="auto_grader/grading_history.txt", student_id="SV001", problem_id=""):
         """
-        HÀM CHÍNH: Đọc log → Phân tích → Tạo JSON
+        HÀM CHÍNH: Đọc log → Phân tích → Trả về dict chuẩn hóa.
+        
+        Tham số:
+            log_path: Đường dẫn file log
+            student_id: ID sinh viên
+            problem_id: ID bài tập
+        
+        Trả về:
+            Dict chứa metadata, loại lỗi, kết quả test, log thô
         """
         
-        # Đọc file - SỬA LỖI: Gọi read_log_file
+        # Đọc file log
         log_content, error = self.read_log_file(log_path)
         if error:
             return {'error': error}
         
-        # Tách stdout và stderr
+        # Tách stdout và stderr (nếu có dấu phân cách)
         if '--- ERROR STREAM ---' in log_content:
             parts = log_content.split('--- ERROR STREAM ---')
             stdout = parts[0]
@@ -151,15 +179,15 @@ class LogProcessor:
             stdout = log_content
             stderr = ''
         
-        # Phân tích
+        # Phân tích loại lỗi và chi tiết
         error_type, error_detail = self.extract_error_type(log_content)
         test_info = self._extract_test_details(log_content)
         
-        # Exit code
+        # Tìm exit code trong log
         exit_match = re.search(self.patterns['exit_code'], log_content)
         exit_code = int(exit_match.group(1)) if exit_match else None
         
-        # Tạo structured data
+        # Tạo dict kết quả
         result = {
             'metadata': {
                 'timestamp': datetime.now().isoformat(),
@@ -174,7 +202,7 @@ class LogProcessor:
             },
             'test_results': test_info,
             'raw_logs': {
-                'stdout': stdout[-5000:],  # Tăng giới hạn lưu log
+                'stdout': stdout[-5000:],  # Giới hạn để không quá dài
                 'stderr': stderr[-3000:] if stderr else ''
             }
         }
@@ -182,7 +210,7 @@ class LogProcessor:
         return result
     
     def save_json(self, data, filename=None):
-        """Lưu JSON"""
+        """Lưu kết quả phân tích ra file JSON."""
         
         if filename is None:
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -198,6 +226,7 @@ class LogProcessor:
 
 
 # === TEST MODULE ===
+# Chạy file này trực tiếp để test LogProcessor
 if __name__ == '__main__':
     print("🧪 TEST LOG PROCESSOR")
     print("=" * 50)

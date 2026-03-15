@@ -1,6 +1,15 @@
 """
-MODULE FEEDBACK GENERATOR - IMPROVED VERSION
-Tạo gợi ý sửa lỗi từ LLM với retry + exponential backoff
+feedback_generator.py
+
+Mục đích:
+    Tạo gợi ý sửa lỗi từ LLM.
+    Nhận code lỗi + phân tích lỗi → Gọi LLM → Trả về code đã sửa.
+
+Cách hoạt động:
+    1. Xây dựng prompt từ code lỗi và thông tin lỗi
+    2. Gọi API Ollama (có retry nếu thất bại)
+    3. Parse JSON response và làm sạch code
+    4. Lưu feedback ra file JSON và Markdown
 """
 
 import requests
@@ -11,7 +20,7 @@ import time
 from pathlib import Path
 from datetime import datetime
 
-# Allow importing from the top-level llm package regardless of working directory
+# Thêm thư mục gốc vào sys.path để import được llm package
 _ROOT = str(Path(__file__).parent.parent.parent)
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
@@ -19,6 +28,12 @@ if _ROOT not in sys.path:
 from llm.code_sanitizer import sanitize_java_code
 
 class FeedbackGenerator:
+    """
+    Tạo gợi ý sửa lỗi từ LLM.
+    
+    Tham số:
+        ollama_url: URL API Ollama
+    """
     
     def __init__(self, ollama_url="http://localhost:11434/api/generate"):
         self.ollama_url = ollama_url
@@ -26,11 +41,23 @@ class FeedbackGenerator:
         self.output_dir.mkdir(parents=True, exist_ok=True)
     
     def generate_fix_suggestion(self, student_code, error_analysis, problem_description="", max_retries=3):
+        """
+        Gọi LLM để sinh gợi ý sửa code.
+        
+        Tham số:
+            student_code: Code Java của sinh viên (có lỗi)
+            error_analysis: Dict chứa loại lỗi và nguyên nhân
+            problem_description: Đề bài (nếu có)
+            max_retries: Số lần retry nếu API lỗi
+        
+        Trả về:
+            Dict chứa explanation, fixed_code, reasoning
+        """
         loai_loi = error_analysis.get('loai_loi', 'Unknown')
         nguyen_nhan = error_analysis.get('nguyen_nhan', 'Unknown')
         chi_tiet = error_analysis.get('chi_tiet', '')
         
-        # Trích xuất phần code quan trọng nếu quá dài
+        # Nếu code quá dài, chỉ lấy phần quan trọng (xung quanh main)
         code_snippet = student_code
         if len(student_code) > 3000:
             main_idx = student_code.find('public static void main')
@@ -39,6 +66,7 @@ class FeedbackGenerator:
             else:
                 code_snippet = student_code[:3000]
         
+        # Xây dựng prompt tiếng Việt cho LLM
         prompt = "Bạn là Java Tutor. Sinh viên gặp lỗi, hãy hướng dẫn sửa.\n\n"
         prompt += "ĐỀ BÀI:\n"
         prompt += problem_description if problem_description else "Bài tập Java cơ bản"
@@ -47,7 +75,7 @@ class FeedbackGenerator:
         prompt += "\n\nLỖI PHÁT HIỆN:\n"
         prompt += f"- Loại lỗi: {loai_loi}\n"
         prompt += f"- Nguyên nhân: {nguyen_nhan}\n"
-        # Chuyển chi_tiet thành string an toàn (có thể là list)
+        # Chuyển chi_tiet thành string (có thể là list)
         chi_tiet_str = '\n'.join(chi_tiet) if isinstance(chi_tiet, list) else str(chi_tiet)
         prompt += f"- Chi tiết: {chi_tiet_str[:500]}\n\n"
         prompt += "YÊU CẦU:\n"
@@ -58,9 +86,9 @@ class FeedbackGenerator:
         prompt += "Không thay đổi tên public class. Trả về toàn bộ file Java.\n\n"
         prompt += 'Trả về JSON: {"explanation": "...", "fixed_code": "...", "reasoning": "..."}'
         
-        # Retry với exponential backoff
+        # Retry với exponential backoff: 1s, 2s, 4s
         for attempt in range(max_retries):
-            backoff_time = 2 ** attempt  # 1s, 2s, 4s
+            backoff_time = 2 ** attempt
             try:
                 print(f"🤖 Đang gọi LLM (lần {attempt+1}/{max_retries})...")
                 
@@ -112,6 +140,7 @@ class FeedbackGenerator:
                 print(f"⚠️ Lỗi: {e}, retry sau {backoff_time}s...")
                 time.sleep(backoff_time)
         
+        # Hết retry → Trả về fallback response
         print("❌ Không thể tạo feedback từ LLM")
         return {
             "error": f"Không thể kết nối LLM sau {max_retries} lần thử",
@@ -124,6 +153,7 @@ class FeedbackGenerator:
         }
 
     def save_feedback(self, output_file, feedback_data):
+        """Lưu feedback ra file JSON và Markdown."""
         if 'saved_at' not in feedback_data:
             feedback_data['saved_at'] = datetime.now().isoformat()
         
@@ -139,6 +169,7 @@ class FeedbackGenerator:
         self._save_as_markdown(md_file, feedback_data)
     
     def _save_as_markdown(self, md_file, feedback_data):
+        """Lưu feedback dạng Markdown (dễ đọc hơn JSON)."""
         try:
             with open(md_file, 'w', encoding='utf-8') as f:
                 f.write("# FEEDBACK - GỢI Ý SỬA LỖI\n\n")
@@ -157,11 +188,14 @@ class FeedbackGenerator:
             print(f"⚠️ Không thể tạo markdown: {e}")
 
 
+# === TEST ===
+# Chạy file này trực tiếp để test FeedbackGenerator
 if __name__ == '__main__':
     print("=" * 70)
     print("🧪 TEST FEEDBACK GENERATOR")
     print("=" * 70)
     
+    # Code mẫu có lỗi: dùng phép trừ thay vì cộng
     sample_code = """
 public class TinhTong {
     public static int tinhTong(int a, int b) {
@@ -170,6 +204,7 @@ public class TinhTong {
 }
 """
     
+    # Thông tin lỗi mẫu
     sample_error = {
         'loai_loi': 'TEST_FAILED',
         'nguyen_nhan': 'Kết quả không đúng',

@@ -1,10 +1,20 @@
 """
-DOCKER MANAGER
-==============
-Manages Docker containers for Java compilation and JUnit testing.
+docker_manager.py
 
-Uses the Python Docker SDK exclusively – never calls the Docker CLI via
-subprocess on the host machine.
+Mục đích:
+    Quản lý Docker container để compile và chạy test Java.
+    Thay vì chạy trực tiếp trên máy, mình dùng Docker để đảm bảo
+    môi trường giống nhau cho mọi người.
+
+Cách hoạt động:
+    1. Tạo container từ image nckh-build-env
+    2. Mount thư mục workspace vào /workspace trong container
+    3. Chạy lệnh mvn clean test
+    4. Lấy log output và xóa container
+
+Lưu ý:
+    - Dùng Python Docker SDK, không gọi command line docker
+    - Container có giới hạn RAM (512MB) và CPU để tránh treo máy
 """
 
 from __future__ import annotations
@@ -17,21 +27,16 @@ from docker.errors import APIError, DockerException, ImageNotFound
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_IMAGE = "nckh-build-env"  # Image bạn vừa build
+DEFAULT_IMAGE = "nckh-build-env"  # Image Docker đã build sẵn
 
 class DockerManager:
     """
-    Runs ``mvn clean test --batch-mode`` inside a sandboxed Docker container.
-
-    Args:
-        image:        Docker image to use (must include Maven and a JDK).
-        memory_limit: Container memory cap (e.g. ``"512m"``).
-        cpu_period:   CFS scheduler period in microseconds (default 100 000).
-        cpu_quota:    CFS quota in microseconds; equals ``cpu_period`` for
-                      exactly 1 CPU.
-        pids_limit:   Maximum number of processes inside the container.
-        timeout:      Seconds to wait for the container to finish before
-                      raising an exception.
+    Chạy mvn clean test trong Docker container.
+    
+    Các tham số:
+        image: Tên Docker image (phải có Maven và JDK)
+        memory_limit: Giới hạn RAM, ví dụ "512m"
+        timeout: Thời gian chờ tối đa (giây) trước khi báo lỗi
     """
 
     def __init__(
@@ -51,9 +56,7 @@ class DockerManager:
         self.timeout = timeout
         self._client: docker.DockerClient | None = None
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
+    # === Các hàm nội bộ ===
 
     @property
     def client(self) -> docker.DockerClient:
@@ -61,9 +64,7 @@ class DockerManager:
             self._client = docker.from_env()
         return self._client
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
+    # === Hàm công khai ===
 
     def compile_and_test(self, workspace_path: str) -> str:
         abs_path = os.path.abspath(workspace_path)
@@ -86,7 +87,7 @@ class DockerManager:
             logs = container.logs(stdout=True, stderr=True).decode("utf-8", errors="replace")
             exit_code = result.get("StatusCode", -1)
             
-            # ✅ THÊM 3 DÒNG NÀY
+            # In log ra console để debug
             print("\n" + "="*70)
             print("DOCKER MAVEN OUTPUT:")
             print(logs)

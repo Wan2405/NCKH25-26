@@ -1,8 +1,14 @@
 """
-LOG PROCESSOR (execution layer)
-================================
-Thin adapter around :class:`auto_grader.modules.log_processor.LogProcessor`
-that accepts a raw log string rather than a file path.
+log_processor.py (execution layer)
+
+Mục đích:
+    Adapter để dùng LogProcessor từ auto_grader/modules.
+    Nhận log dạng string thay vì đường dẫn file.
+    
+Cách hoạt động:
+    1. Lưu log string vào file tạm
+    2. Gọi LogProcessor gốc xử lý file đó
+    3. Xóa file tạm và trả về kết quả
 """
 
 from __future__ import annotations
@@ -17,18 +23,21 @@ logger = logging.getLogger(__name__)
 
 
 class LogProcessor:
-    """Parses a raw Maven/JUnit log string into a structured JSON-compatible dict."""
+    """Phân tích log Maven/JUnit thành dict chuẩn hóa."""
 
     def __init__(self, output_dir: str = "auto_grader/output/logs") -> None:
         self._inner = _LogProcessor(output_dir=output_dir)
 
     def process(self, raw_log: str, student_id: str = "SV001") -> dict:
         """
-        Save *raw_log* to a temporary file, delegate to the underlying
-        :class:`~auto_grader.modules.log_processor.LogProcessor`, and return
-        the structured result dict.
-
-        The JSON file is also persisted to *output_dir* by the inner processor.
+        Xử lý log string và trả về dict chứa thông tin lỗi.
+        
+        Tham số:
+            raw_log: Nội dung log dạng string
+            student_id: ID sinh viên (để đặt tên file output)
+        
+        Trả về:
+            Dict chứa metadata, loại lỗi, chi tiết test, v.v.
         """
         with tempfile.NamedTemporaryFile(
             mode="w",

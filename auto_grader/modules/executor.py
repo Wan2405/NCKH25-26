@@ -1,13 +1,12 @@
 """
-JAVA EXECUTOR (utility)
-=======================
-Provides :func:`extract_class_name` for extracting the public class name
-from Java source code.
+executor.py
 
-.. note::
-   Java compilation and execution **must** be performed inside a Docker
-   container via :class:`core.docker_manager.DockerManager` – never via
-   ``subprocess`` on the host machine.
+Mục đích:
+    Cung cấp hàm extract_class_name để lấy tên class từ code Java.
+
+Lưu ý:
+    Việc compile và chạy code PHẢI qua Docker (DockerManager),
+    KHÔNG chạy trực tiếp trên máy host.
 """
 
 import logging
@@ -17,10 +16,11 @@ logger = logging.getLogger(__name__)
 
 
 def extract_class_name(code: str) -> str:
-    """Extract the public class name from Java source code.
-
-    Falls back to the first class name found, then to ``"Solution"`` if no
-    class declaration is present.
+    """
+    Trích xuất tên class từ code Java.
+    
+    Ưu tiên tìm public class, nếu không có thì lấy class đầu tiên.
+    Nếu không tìm được class nào, trả về "Solution".
     """
     match = re.search(r"public\s+class\s+(\w+)", code)
     if match:
