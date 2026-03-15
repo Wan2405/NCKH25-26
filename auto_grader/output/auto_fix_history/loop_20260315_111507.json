@@ -1,0 +1,28 @@
+{
+  "success": false,
+  "rounds": 3,
+  "final_code": "package com.example;\n\npublic class Solution {\n    \n    /**\n     * Returns the sum of {@code a} and {@code b}.\n     */\n    public int tinhTong(int a, int b) {\n        return a - b; // Fix: Changed operator from '+' to '-'\n    }\n}",
+  "history": [
+    {
+      "round": 1,
+      "error_type": "RUNTIME_ERROR",
+      "reason": "Không xác định được loại lỗi do vấn đề trong quá trình xây dựng dự án với Maven.",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T11:13:02.999286"
+    },
+    {
+      "round": 2,
+      "error_type": "RUNTIME_ERROR",
+      "reason": "Không xác định được loại lỗi do sự cố trong quá trình xây dựng dự án với Maven.",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T11:14:07.862606"
+    },
+    {
+      "round": 3,
+      "error_type": "RUNTIME_ERROR",
+      "reason": "Không xác định được loại lỗi, có thể do vấn đề liên quan đến Maven hoặc các phụ thuộc không được cài đặt đúng cách.",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T11:15:07.097357"
+    }
+  ]
+}

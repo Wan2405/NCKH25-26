@@ -17,8 +17,7 @@ from docker.errors import APIError, DockerException, ImageNotFound
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_IMAGE = "maven:3.9-eclipse-temurin-17"
-
+DEFAULT_IMAGE = "nckh-build-env"  # Image bạn vừa build
 
 class DockerManager:
     """
@@ -67,22 +66,6 @@ class DockerManager:
     # ------------------------------------------------------------------
 
     def compile_and_test(self, workspace_path: str) -> str:
-        """
-        Mount *workspace_path* into a container and run::
-
-            mvn clean test --batch-mode
-
-        The Maven project must already exist at *workspace_path* (a valid
-        ``pom.xml`` is expected at the root of that directory).
-
-        Returns:
-            Combined stdout + stderr from the container followed by a
-            ``--- EXIT CODE: N ---`` trailer line.
-
-        Raises:
-            docker.errors.ImageNotFound  if the image is missing.
-            docker.errors.APIError       on any other Docker API error.
-        """
         abs_path = os.path.abspath(workspace_path)
         logger.info("compile_and_test: image=%s workspace=%s", self.image, abs_path)
 
@@ -91,7 +74,7 @@ class DockerManager:
             command="mvn clean test --batch-mode",
             volumes={abs_path: {"bind": "/workspace", "mode": "rw"}},
             working_dir="/workspace",
-            network_disabled=True,
+            network_disabled=False,
             mem_limit=self.memory_limit,
             cpu_period=self.cpu_period,
             cpu_quota=self.cpu_quota,
@@ -100,10 +83,15 @@ class DockerManager:
         try:
             container.start()
             result = container.wait(timeout=self.timeout)
-            logs = container.logs(stdout=True, stderr=True).decode(
-                "utf-8", errors="replace"
-            )
+            logs = container.logs(stdout=True, stderr=True).decode("utf-8", errors="replace")
             exit_code = result.get("StatusCode", -1)
+            
+            # ✅ THÊM 3 DÒNG NÀY
+            print("\n" + "="*70)
+            print("DOCKER MAVEN OUTPUT:")
+            print(logs)
+            print("="*70 + "\n")
+            
             return f"{logs}\n--- EXIT CODE: {exit_code} ---"
         except Exception:
             logger.exception("Error while running container")

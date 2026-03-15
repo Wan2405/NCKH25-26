@@ -1,0 +1,28 @@
+{
+  "success": false,
+  "rounds": 3,
+  "final_code": "package com.example;\n\npublic class Solution {\n    \n    /**\n     * Tính tổng của hai số nguyên\n     * @param a Số thứ nhất\n     * @param b Số thứ hai\n     * @return Tổng của a và b\n     */\n    public int tinhTong(int a, int b) {\n        return a + b;\n    }\n\n    /**\n     * Tính tích của hai số nguyên\n     * @param a Số thứ nhất\n     * @param b Số thứ hai\n     * @return Tích của a và b\n     */\n    public int tinhTich(int a, int b) {\n        return a * b;\n    }\n\n    /**\n     * Kiểm tra số có phải số chẵn không\n     * @param n Số cần kiểm tra\n     * @return true nếu n là số chẵn, false nếu n là số lẻ\n     */\n    public boolean laSoChang(int n) {\n        return n % 2 == 0;\n    }\n}",
+  "history": [
+    {
+      "round": 1,
+      "error_type": "RUNTIME_ERROR",
+      "reason": "Không xác định được loại lỗi, có thể do vấn đề kết nối mạng hoặc không thể tải được plugin Maven",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T11:06:42.111931"
+    },
+    {
+      "round": 2,
+      "error_type": "RUNTIME_ERROR",
+      "reason": "Không xác định được loại lỗi, có thể do vấn đề kết nối mạng hoặc không thể tải được plugin Maven",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T11:08:11.304648"
+    },
+    {
+      "round": 3,
+      "error_type": "RUNTIME_ERROR",
+      "reason": "Không xác định được loại lỗi do sự cố trong quá trình xây dựng dự án với Maven.",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T11:09:39.729086"
+    }
+  ]
+}

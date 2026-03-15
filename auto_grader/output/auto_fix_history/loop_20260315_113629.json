@@ -1,0 +1,28 @@
+{
+  "success": false,
+  "rounds": 3,
+  "final_code": "package com.example;\n\npackage com.example;\n\npackage com.example;\n\npackage com.example;\n\npublic class Solution {\n    public int tinhTong(int a, int b) {\n        return a + b;\n    }\n}",
+  "history": [
+    {
+      "round": 1,
+      "error_type": "COMPILE_ERROR",
+      "reason": "Detected pattern: COMPILATION ERROR",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T11:35:23.751144"
+    },
+    {
+      "round": 2,
+      "error_type": "COMPILE_ERROR",
+      "reason": "Detected pattern: COMPILATION ERROR",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T11:35:56.111931"
+    },
+    {
+      "round": 3,
+      "error_type": "COMPILE_ERROR",
+      "reason": "Detected pattern: COMPILATION ERROR",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T11:36:29.674825"
+    }
+  ]
+}
