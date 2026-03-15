@@ -1,4 +1,6 @@
-public class P001_TongHaiSo {  // ✅ ĐÚNG: tên lớp = tên file
+package com.example;
+
+public class P001_Solution {
     public static int tinhTong(int a, int b) {
         return a + b;
     }
