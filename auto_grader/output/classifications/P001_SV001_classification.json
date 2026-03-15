@@ -1,0 +1,16 @@
+{
+  "metadata": {
+    "timestamp": "2026-03-15T01:12:28.473478",
+    "student_id": "SV001",
+    "problem_id": "P001",
+    "log_file": "auto_grader\\grading_history.txt"
+  },
+  "classification": {
+    "method": "regex",
+    "loai_loi": "COMPILE_ERROR",
+    "nguyen_nhan": "Detected pattern: COMPILATION ERROR",
+    "confidence": 0.9,
+    "goi_y": "1. Kiểm tra cú pháp Java\n2. Kiểm tra import\n3. Kiểm tra tên class",
+    "chi_tiet": "['[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_Solution.java:[1,8] class P001_TongHaiSo is public, should be declared in a file named P001_TongHaiSo.java\\n[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_TongHaiSo.java:[1,8] duplicate class: P001_TongHaiSo\\n[INFO] 2 errors', '[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_TongHaiSo.java:[1,8] du"
+  }
+}

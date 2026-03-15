@@ -1,0 +1,8 @@
+# Core dependencies
+requests==2.31.0
+
+# Python Docker SDK (for container management - no subprocess docker calls)
+docker==7.1.0
+
+# Utils
+python-dotenv==1.0.0

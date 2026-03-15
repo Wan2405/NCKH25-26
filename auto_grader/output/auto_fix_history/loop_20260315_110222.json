@@ -1,0 +1,28 @@
+{
+  "success": false,
+  "rounds": 3,
+  "final_code": "package com.example;\n\npublic class Solution {\n    public int tinhTong(int a, int b) {\n        if (a >= 0 && b >= 0) {\n            return a + b;\n        } else {\n            throw new IllegalArgumentException(\"Both numbers must be non-negative\");\n        }\n    }\n}",
+  "history": [
+    {
+      "round": 1,
+      "error_type": "RUNTIME_ERROR",
+      "reason": "Không xác định được loại lỗi do vấn đề liên quan đến Maven và plugin maven-clean-plugin không thể được giải quyết.",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T11:00:05.381100"
+    },
+    {
+      "round": 2,
+      "error_type": "RUNTIME_ERROR",
+      "reason": "Không xác định được loại lỗi do sự cố trong quá trình xây dựng dự án với Maven.",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T11:01:13.022450"
+    },
+    {
+      "round": 3,
+      "error_type": "RUNTIME_ERROR",
+      "reason": "Không xác định được loại lỗi, có thể do vấn đề với Maven hoặc phụ thuộc không được cài đặt đúng cách.",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T11:02:22.785106"
+    }
+  ]
+}

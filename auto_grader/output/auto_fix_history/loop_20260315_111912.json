@@ -1,0 +1,14 @@
+{
+  "success": false,
+  "rounds": 1,
+  "final_code": "package com.example;\n\npublic class Solution {\n    \n    /**\n     * Returns the sum of {@code a} and {@code b}.\n     */\n    public int tinhTong(int a, int b) {\n        return a - b; // Fix: Changed operator from '+' to '-'\n    }\n}",
+  "history": [
+    {
+      "round": 1,
+      "error_type": "RUNTIME_ERROR",
+      "reason": "Không xác định được loại lỗi, có thể do vấn đề với Maven hoặc phụ thuộc không được cài đặt đúng cách.",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T11:19:12.454537"
+    }
+  ]
+}

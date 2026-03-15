@@ -1,0 +1,28 @@
+{
+  "success": false,
+  "rounds": 3,
+  "final_code": "package com.example;\n\npublic class Solution {\n    public int tinhTong(int a, int b) {\n        return a + b; // Không cần sửa lỗi gì ở đây, phép cộng là đúng.\n    }\n}",
+  "history": [
+    {
+      "round": 1,
+      "error_type": "RUNTIME_ERROR",
+      "reason": "Không xác định được loại lỗi, có thể do vấn đề kết nối mạng hoặc cấu hình Maven không đúng.",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T10:42:24.209781"
+    },
+    {
+      "round": 2,
+      "error_type": "RUNTIME_ERROR",
+      "reason": "Không xác định được loại lỗi do sự cố trong quá trình tải về và giải quyết các plugin của Maven.",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T10:43:20.334686"
+    },
+    {
+      "round": 3,
+      "error_type": "COMPILE_ERROR",
+      "reason": "Không xác định được loại lỗi, có thể do vấn đề với Maven hoặc phụ thuộc không được cài đặt đúng cách.",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T10:44:21.788929"
+    }
+  ]
+}

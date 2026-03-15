@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "rounds": 2,
+  "final_code": "package com.example;\n\npublic class Solution {\n    public int tinhTong(int a, int b) {\n        return a + b;\n    }\n}",
+  "history": [
+    {
+      "round": 1,
+      "error_type": "COMPILE_ERROR",
+      "reason": "Detected pattern: COMPILATION ERROR",
+      "status": "FAILED",
+      "timestamp": "2026-03-15T11:49:24.029618"
+    },
+    {
+      "round": 2,
+      "error_type": "PASSED",
+      "reason": "Detected pattern: BUILD SUCCESS",
+      "status": "PASSED",
+      "timestamp": "2026-03-15T11:50:17.435716"
+    }
+  ]
+}

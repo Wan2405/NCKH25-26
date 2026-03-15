@@ -1,0 +1,14 @@
+{
+  "success": false,
+  "rounds": 1,
+  "final_code": "package com.example;\n\npublic class Solution {\n    public int tinhTong(int a, int b) {\n        return a + b;  // Sửa lỗi: phép cộng thay vì phép trừ\n    }\n}",
+  "history": [
+    {
+      "round": 1,
+      "error_type": "UNKNOWN",
+      "reason": "Không khớp pattern chuẩn",
+      "status": "FAILED_TO_FIX",
+      "timestamp": "2026-03-15T10:38:54.283685"
+    }
+  ]
+}

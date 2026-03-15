@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "timestamp": "2026-03-15T00:42:25.845221",
+    "student_id": "SV001",
+    "problem_id": "P001",
+    "log_file": "auto_grader\\grading_history.txt"
+  },
+  "execution": {
+    "exit_code": null,
+    "error_type": "UNKNOWN",
+    "error_detail": "Không xác định được loại lỗi"
+  },
+  "test_results": {
+    "total_tests": 0,
+    "passed": 0,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "raw_logs": {
+    "stdout": "3): 640 kB | 121 kB | 315/358 kB\nProgress (3): 640 kB | 121 kB | 319/358 kB\nProgress (3): 640 kB | 121 kB | 324/358 kB\nProgress (3): 640 kB | 121 kB | 328/358 kB\nProgress (3): 640 kB | 121 kB | 332/358 kB\nProgress (3): 640 kB | 121 kB | 336/358 kB\nProgress (3): 640 kB | 121 kB | 340/358 kB\nProgress (3): 640 kB | 121 kB | 344/358 kB\nProgress (3): 640 kB | 121 kB | 348/358 kB\nProgress (3): 640 kB | 121 kB | 352/358 kB\nProgress (3): 640 kB | 121 kB | 356/358 kB\nProgress (3): 640 kB | 121 kB | 358 kB    \n                                      \nDownloaded from central: https://repo.maven.apache.org/maven2/com/google/collections/google-collections/1.0/google-collections-1.0.jar (640 kB at 949 kB/s)\nDownloaded from central: https://repo.maven.apache.org/maven2/junit/junit/3.8.2/junit-3.8.2.jar (121 kB at 174 kB/s)\nDownloaded from central: https://repo.maven.apache.org/maven2/log4j/log4j/1.2.12/log4j-1.2.12.jar (358 kB at 495 kB/s)\n[INFO] Changes detected - recompiling the module!\n[INFO] Compiling 2 source files to /app/target/classes\n[INFO] ------------------------------------------------------------------------\n[INFO] BUILD FAILURE\n[INFO] ------------------------------------------------------------------------\n[INFO] Total time:  19.615 s\n[INFO] Finished at: 2026-03-14T17:42:25Z\n[INFO] ------------------------------------------------------------------------\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.1:compile (default-compile) on project grading-system: Fatal error compiling: error: invalid target release: 17 -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException\n\n--- DOCKER EXIT CODE: 1 ---\n--- RUN IN DOCKER: YES ---",
+    "stderr": ""
+  }
+}

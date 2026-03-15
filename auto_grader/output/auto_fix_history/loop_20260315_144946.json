@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "rounds": 1,
+  "final_code": "package com.example;\n\npublic class Solution {\n    /**\n     * Tính tổng của hai số nguyên\n     * @param a Số thứ nhất\n     * @param b Số thứ hai\n     * @return Tổng của a và b\n     */\n    public int tinhTong(int a, int b) {\n        return a + b;\n    }\n    \n    /**\n     * Tính tích của hai số nguyên\n     * @param a Số thứ nhất\n     * @param b Số thứ hai\n     * @return Tích của a và b\n     */\n    public int tinhTich(int a, int b) {\n        return a * b;\n    }\n    \n    /**\n     * Kiểm tra số có phải số chẵn không\n     * @param n Số cần kiểm tra\n     * @return true nếu n là số chẵn, false nếu n là số lẻ\n     */\n    public boolean lasoChang(int n) {\n        return n % 2 == 0;\n    }\n}",
+  "history": [
+    {
+      "round": 1,
+      "error_type": "PASSED",
+      "reason": "Detected pattern: BUILD SUCCESS",
+      "status": "PASSED",
+      "timestamp": "2026-03-15T14:49:46.728882"
+    }
+  ]
+}

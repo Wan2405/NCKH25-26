@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "timestamp": "2026-03-15T01:08:45.681384",
+    "student_id": "SV001",
+    "problem_id": "P001",
+    "log_file": "auto_grader\\grading_history.txt"
+  },
+  "execution": {
+    "exit_code": null,
+    "error_type": "UNKNOWN",
+    "error_detail": "Không xác định được loại lỗi"
+  },
+  "test_results": {
+    "total_tests": 0,
+    "passed": 0,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "raw_logs": {
+    "stdout": " (1): 519/640 kB\nProgress (1): 524/640 kB\nProgress (1): 528/640 kB\nProgress (1): 532/640 kB\nProgress (1): 536/640 kB\nProgress (1): 540/640 kB\nProgress (1): 544/640 kB\nProgress (1): 548/640 kB\nProgress (1): 552/640 kB\nProgress (1): 556/640 kB\nProgress (1): 560/640 kB\nProgress (1): 565/640 kB\nProgress (1): 569/640 kB\nProgress (1): 573/640 kB\nProgress (1): 577/640 kB\nProgress (1): 581/640 kB\nProgress (1): 585/640 kB\nProgress (1): 589/640 kB\nProgress (1): 593/640 kB\nProgress (1): 597/640 kB\nProgress (1): 601/640 kB\nProgress (1): 605/640 kB\nProgress (1): 610/640 kB\nProgress (1): 614/640 kB\nProgress (1): 618/640 kB\nProgress (1): 622/640 kB\nProgress (1): 626/640 kB\nProgress (1): 630/640 kB\nProgress (1): 634/640 kB\nProgress (1): 638/640 kB\nProgress (1): 640 kB    \n                    \nDownloaded from central: https://repo.maven.apache.org/maven2/com/google/collections/google-collections/1.0/google-collections-1.0.jar (640 kB at 793 kB/s)\n[INFO] Changes detected - recompiling the module!\n[INFO] Compiling 2 source files to /app/target/classes\n[INFO] ------------------------------------------------------------------------\n[INFO] BUILD FAILURE\n[INFO] ------------------------------------------------------------------------\n[INFO] Total time:  24.575 s\n[INFO] Finished at: 2026-03-14T18:08:45Z\n[INFO] ------------------------------------------------------------------------\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.1:compile (default-compile) on project grading-system: Fatal error compiling: error: invalid target release: 17 -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException\n\n--- RUN IN DOCKER: YES ---\n--- EXIT CODE: 1 ---",
+    "stderr": ""
+  }
+}

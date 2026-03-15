@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "timestamp": "2026-02-26T17:04:02.199768",
+    "student_id": "SV001",
+    "problem_id": "P001",
+    "log_file": "auto_grader/grading_history.txt"
+  },
+  "execution": {
+    "exit_code": null,
+    "error_type": "COMPILE_ERROR",
+    "error_detail": [
+      "[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_Solution.java:[3,8] class P001_TongHaiSo is public, should be declared in a file named P001_TongHaiSo.java\n[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_TongHaiSo.java:[3,8] duplicate class: com.example.P001_TongHaiSo\n[INFO] 2 errors",
+      "[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_TongHaiSo.java:[3,8] duplicate class: com.example.P001_TongHaiSo\n[INFO] 2 errors \n[INFO] -------------------------------------------------------------",
+      "[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_Solution.java:[3,8] class P001_TongHaiSo is public, should be declared in a file named P001_TongHaiSo.java\n[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_TongHaiSo.java:[3,8] duplicate class: com.example.P001_TongHaiSo\n[ERROR] -> [Help 1]"
+    ]
+  },
+  "test_results": {
+    "total_tests": 0,
+    "passed": 0,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "raw_logs": {
+    "stdout": "y\n[INFO] 1 warning\n[INFO] -------------------------------------------------------------\n[INFO] -------------------------------------------------------------\n[ERROR] COMPILATION ERROR : \n[INFO] -------------------------------------------------------------\n[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_Solution.java:[3,8] class P001_TongHaiSo is public, should be declared in a file named P001_TongHaiSo.java\n[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_TongHaiSo.java:[3,8] duplicate class: com.example.P001_TongHaiSo\n[INFO] 2 errors \n[INFO] -------------------------------------------------------------\n[INFO] ------------------------------------------------------------------------\n[INFO] BUILD FAILURE\n[INFO] ------------------------------------------------------------------------\n[INFO] Total time:  1.132 s\n[INFO] Finished at: 2026-02-26T17:04:02+07:00\n[INFO] ------------------------------------------------------------------------\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:compile (default-compile) on project grading-system: Compilation failure: Compilation failure: \n[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_Solution.java:[3,8] class P001_TongHaiSo is public, should be declared in a file named P001_TongHaiSo.java\n[ERROR] /C:/Users/ASUS/Desktop/NCKH-2526/auto_grader/maven_project/src/main/java/com/example/P001_TongHaiSo.java:[3,8] duplicate class: com.example.P001_TongHaiSo\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n\n--- EXIT CODE: 1 ---",
+    "stderr": ""
+  }
+}
