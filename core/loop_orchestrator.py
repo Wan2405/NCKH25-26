@@ -1,18 +1,21 @@
 """
-LOOP ORCHESTRATOR
-=================
-Controls the AI-in-the-loop automated debugging feedback loop.
+loop_orchestrator.py
 
-Flow for each round:
-    1. Write the current Java code to the workspace Maven project.
-    2. Call DockerManager to compile and run JUnit tests.
-    3. Parse the raw log with LogProcessor.
-    4. Classify the error with ErrorClassifier.
-    5. If PASSED → stop and return success.
-    6. Otherwise call LLMClient for a fix → update code → repeat.
+Mục đích:
+    Điều khiển vòng lặp chính của hệ thống sửa lỗi tự động.
+    Đây là "bộ não" quyết định khi nào dừng, khi nào gọi LLM sửa code.
 
-The loop stops when the code passes all tests or the maximum number of
-rounds is exhausted.
+Cách hoạt động (mỗi vòng):
+    1. Ghi code Java vào workspace
+    2. Gọi DockerManager để compile và chạy test
+    3. Dùng LogProcessor phân tích log
+    4. Dùng ErrorClassifier xác định loại lỗi
+    5. Nếu PASSED → dừng và trả về thành công
+    6. Nếu FAILED → gọi LLM sinh code sửa → tiếp tục vòng mới
+
+Vòng lặp dừng khi:
+    - Code pass tất cả test
+    - Hết số vòng tối đa (max_rounds)
 """
 
 from __future__ import annotations
@@ -36,14 +39,15 @@ logger = logging.getLogger(__name__)
 
 class LoopOrchestrator:
     """
-    Args:
-        docker_manager:   A :class:`~core.docker_manager.DockerManager` instance.
-        log_processor:    Parses raw Maven output into a structured dict.
-        error_classifier: Classifies the parsed log.
-        llm_client:       Generates code fixes via an LLM.
-        workspace_path:   Root of the Maven project used as the sandbox.
-        max_rounds:       Hard stop after this many iterations.
-        history_dir:      Directory for persisting loop history JSON files.
+    Điều khiển vòng lặp sửa lỗi.
+    
+    Tham số:
+        docker_manager: Quản lý Docker để chạy test
+        log_processor: Phân tích log Maven
+        error_classifier: Phân loại lỗi
+        llm_client: Gọi LLM để sinh code sửa
+        workspace_path: Thư mục chứa project Maven
+        max_rounds: Số vòng sửa lỗi tối đa
     """
 
     def __init__(
@@ -65,9 +69,7 @@ class LoopOrchestrator:
         self.history_dir = Path(history_dir)
         self.history_dir.mkdir(parents=True, exist_ok=True)
 
-    # ------------------------------------------------------------------
-    # Public
-    # ------------------------------------------------------------------
+    # === Hàm công khai ===
 
     def run(
         self,
@@ -77,16 +79,13 @@ class LoopOrchestrator:
         student_id: str = "SV001",
     ) -> dict:
         """
-        Execute the debugging loop.
-
-        Returns a result dict::
-
-            {
-                "success":    bool,
-                "rounds":     int,
-                "final_code": str,
-                "history":    list[dict],
-            }
+        Chạy vòng lặp sửa lỗi.
+        
+        Trả về dict chứa:
+            success: True/False - code có pass không
+            rounds: Số vòng đã chạy
+            final_code: Code cuối cùng
+            history: Lịch sử từng vòng
         """
         current_code = initial_code
         history: list[dict] = []
@@ -160,9 +159,7 @@ class LoopOrchestrator:
             final_code=current_code,
         )
 
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
+    # === Các hàm nội bộ ===
 
     def _save_code(self, class_name: str, code: str) -> None:
         dest = (

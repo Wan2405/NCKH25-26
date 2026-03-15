@@ -1,11 +1,19 @@
 """
-LLM CLIENT
-==========
-Interacts with a locally running Ollama instance (Llama 3.1 by default)
-to generate Java code fixes.
+llm_client.py
 
-No web framework or external service is required; Ollama must be running
-locally on the machine that runs the pipeline.
+Mục đích:
+    Giao tiếp với Ollama (chạy Llama 3.1 local) để sinh code Java sửa lỗi.
+
+Cách hoạt động:
+    1. Nhận code lỗi + thông tin phân tích lỗi
+    2. Tạo prompt yêu cầu LLM sửa
+    3. Gọi API Ollama và parse JSON response
+    4. Trả về code đã sửa
+
+Lưu ý:
+    - Ollama phải đang chạy trên máy local (port 11434)
+    - Cần pull model llama3.1 trước: ollama pull llama3.1
+    - Có cơ chế retry nếu gọi API thất bại
 """
 
 from __future__ import annotations
@@ -23,12 +31,12 @@ logger = logging.getLogger(__name__)
 
 class LLMClient:
     """
-    Sends prompts to Ollama and parses the JSON response.
-
-    Args:
-        base_url:    Ollama API base URL (default: ``http://localhost:11434``).
-        model:       Model tag to use (default: ``llama3.1``).
-        max_retries: Number of retry attempts on transient errors.
+    Gửi prompt đến Ollama và parse JSON response.
+    
+    Tham số:
+        base_url: URL API Ollama, mặc định http://localhost:11434
+        model: Tên model, mặc định llama3.1
+        max_retries: Số lần thử lại nếu gọi API lỗi
     """
 
     _DEFAULT_BASE_URL = "http://localhost:11434"
@@ -44,9 +52,7 @@ class LLMClient:
         self.model = model
         self.max_retries = max_retries
 
-    # ------------------------------------------------------------------
-    # Public
-    # ------------------------------------------------------------------
+    # === Hàm công khai ===
 
     def generate_fix(
         self,
@@ -55,12 +61,16 @@ class LLMClient:
         problem_description: str = "",
     ) -> dict:
         """
-        Ask the LLM to produce a corrected version of *student_code*.
-
-        Returns:
-            A dict with at least ``fixed_code`` and ``explanation`` keys.
-            Returns ``{"fixed_code": "", "explanation": "LLM unavailable"}``
-            if all retry attempts fail.
+        Yêu cầu LLM sinh code đã sửa từ code lỗi.
+        
+        Tham số:
+            student_code: Code Java của sinh viên (có lỗi)
+            error_analysis: Dict chứa loại lỗi và nguyên nhân
+            problem_description: Đề bài (nếu có)
+        
+        Trả về:
+            Dict với fixed_code và explanation.
+            Nếu LLM không phản hồi, trả về dict rỗng.
         """
         prompt = self._build_prompt(student_code, error_analysis, problem_description)
 
@@ -104,9 +114,7 @@ class LLMClient:
 
         return {"fixed_code": "", "explanation": "LLM unavailable after retries"}
 
-    # ------------------------------------------------------------------
-    # Private
-    # ------------------------------------------------------------------
+    # === Hàm nội bộ ===
 
     def _build_prompt(
         self, code: str, error_analysis: dict, problem_description: str

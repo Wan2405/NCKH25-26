@@ -1,10 +1,13 @@
 """
-RUNNER (execution layer)
-========================
-Thin wrapper that invokes DockerManager to compile and run JUnit tests.
+runner.py
 
-All Java compilation and test execution happens inside a Docker container
-via DockerManager – never directly on the host machine.
+Mục đích:
+    Wrapper đơn giản để gọi DockerManager chạy test.
+    File này giúp code gọn hơn khi cần chạy test từ nhiều nơi.
+
+Lưu ý:
+    Tất cả việc compile và chạy test đều thực hiện trong Docker,
+    không bao giờ chạy trực tiếp trên máy host.
 """
 
 from __future__ import annotations
@@ -20,15 +23,14 @@ logger = logging.getLogger(__name__)
 
 def run_tests(docker_manager: "DockerManager", workspace_path: str) -> str:
     """
-    Compile and run JUnit tests for the Maven project at *workspace_path*
-    inside a Docker container.
-
-    Args:
-        docker_manager: A configured :class:`~core.docker_manager.DockerManager`.
-        workspace_path: Local path to the Maven project root.
-
-    Returns:
-        Raw log string (stdout + stderr + exit-code trailer).
+    Compile và chạy JUnit test trong Docker container.
+    
+    Tham số:
+        docker_manager: Instance của DockerManager đã cấu hình
+        workspace_path: Đường dẫn đến thư mục project Maven
+    
+    Trả về:
+        Chuỗi log (stdout + stderr + exit code)
     """
     logger.info("run_tests: workspace=%s", workspace_path)
     return docker_manager.compile_and_test(workspace_path)

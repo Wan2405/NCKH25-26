@@ -1,30 +1,20 @@
 """
 run_feedback_loop.py
-====================
-CLI entry point for the AI-in-the-loop automated debugging pipeline.
 
-Architecture
-------------
-run_feedback_loop.py
-  └─ core/loop_orchestrator.py  (LoopOrchestrator)
-       ├─ core/docker_manager.py    (DockerManager  – Python Docker SDK)
-       ├─ execution/log_processor.py (LogProcessor)
-       ├─ execution/error_classifier.py (ErrorClassifier)
-       └─ llm/llm_client.py         (LLMClient – Ollama Llama 3.1)
+Mục đích:
+    File chính để chạy hệ thống gỡ lỗi Java tự động.
+    Đây là nơi bắt đầu khi chạy lệnh: python run_feedback_loop.py
 
-Usage
------
-    python run_feedback_loop.py --workspace <path> [--max-rounds N]
+Cách hoạt động:
+    1. Đọc file Java từ thư mục workspace
+    2. Khởi tạo các module: Docker, LogProcessor, ErrorClassifier, LLM
+    3. Chạy vòng lặp sửa lỗi qua LoopOrchestrator
 
-Options
--------
-    --workspace DIR  Path to the Maven project workspace containing the
-                     corrupted Java source and pom.xml (required).
-    --max-rounds N   Maximum number of fix iterations (default: 3).
+Cách sử dụng:
+    python run_feedback_loop.py --workspace ./workspace --max-rounds 3
 
-Example
--------
-    python run_feedback_loop.py --workspace ./test_workspace --max-rounds 3
+    --workspace: thư mục chứa code Java cần sửa (bắt buộc)
+    --max-rounds: số vòng sửa lỗi tối đa, mặc định là 3
 """
 
 from __future__ import annotations
@@ -35,10 +25,8 @@ import os
 import re
 import sys
 
-# ---------------------------------------------------------------------------
-# Ensure top-level packages (core/, execution/, llm/) are importable when the
-# script is run from any working directory.
-# ---------------------------------------------------------------------------
+# Thêm thư mục gốc vào sys.path để có thể import các module (core/, execution/, llm/)
+# dù chạy script từ thư mục nào
 _ROOT = os.path.dirname(os.path.abspath(__file__))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
@@ -56,12 +44,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+# === Các hàm hỗ trợ ===
 
 def _find_java_source(workspace: str) -> str | None:
-    """Return the first .java file found under workspace/src/main/java/."""
+    """Tìm file .java đầu tiên trong thư mục src/main/java/ của workspace."""
     src_root = os.path.join(workspace, "src", "main", "java")
     if not os.path.isdir(src_root):
         return None
@@ -82,9 +68,7 @@ def _extract_class_name(code: str) -> str:
     return m.group(1) if m else "Solution"
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
+# === Hàm main - điểm bắt đầu chính ===
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(

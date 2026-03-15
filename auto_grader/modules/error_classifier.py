@@ -1,6 +1,14 @@
 """
-MODULE ERROR CLASSIFIER - Task 10-11
-Phân loại lỗi bằng LLM (Llama 3.1) + Regex fallback
+error_classifier.py
+
+Mục đích:
+    Phân loại lỗi Java chi tiết hơn LogProcessor.
+    Kết hợp Regex (nhanh) và LLM (chính xác) để xác định nguyên nhân lỗi.
+
+Cách hoạt động:
+    1. Quick classify: Dùng regex tìm các pattern lỗi phổ biến
+    2. Nếu confidence thấp (<0.8) → Gọi LLM phân tích sâu hơn
+    3. Trả về loại lỗi, nguyên nhân và gợi ý sửa
 """
 
 import requests
@@ -12,11 +20,15 @@ from pathlib import Path
 class ErrorClassifier:
     """
     Phân loại lỗi với 2 chiến lược:
-    1. Quick Classification (Regex)
-    2. LLM Classification (Llama 3.1) với exponential backoff
+        1. Quick Classification (Regex) - nhanh, không cần LLM
+        2. LLM Classification (Llama 3.1) - chính xác hơn, có retry
+    
+    Tham số:
+        use_llm: Có dùng LLM không (nếu False, chỉ dùng regex)
+        ollama_url: URL API Ollama
     """
     
-    # Giới hạn ký tự log gửi tới LLM
+    # Giới hạn ký tự log gửi LLM (tránh prompt quá dài)
     STDOUT_LIMIT = 2000
     STDERR_LIMIT = 1000
     DETAIL_LIMIT = 500
@@ -27,11 +39,11 @@ class ErrorClassifier:
         self.output_dir = Path("auto_grader/output/classifications")
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Patterns cho quick classification
+        # Các pattern để nhận diện lỗi nhanh (không cần LLM)
         self.error_patterns = {
             'COMPILE_ERROR': {
                 'keywords': ['COMPILATION ERROR', 'cannot find symbol', 'illegal start'],
-                'confidence': 0.9
+                'confidence': 0.9  # Độ tin cậy cao vì pattern rõ ràng
             },
             'RUNTIME_ERROR': {
                 'keywords': ['Exception in thread', 'NullPointerException', 'ArrayIndexOutOfBoundsException'],
@@ -48,7 +60,10 @@ class ErrorClassifier:
         }
     
     def quick_classify(self, log_data):
-        """Phân loại nhanh bằng Regex"""
+        """
+        Phân loại nhanh bằng Regex.
+        Không cần gọi LLM, phù hợp cho lỗi phổ biến.
+        """
         
         full_text = log_data.get('raw_logs', {}).get('stdout', '') + \
                    log_data.get('raw_logs', {}).get('stderr', '')
@@ -77,13 +92,18 @@ class ErrorClassifier:
         }
     
     def _safe_str(self, value):
-        """Chuyển đổi giá trị bất kỳ thành string an toàn (list, dict, str, etc.)"""
+        """Chuyển list/dict/any thành string an toàn."""
         if isinstance(value, list):
             return '\n'.join(str(item) for item in value)
         return str(value)
     
     def llm_classify(self, log_data, max_retries=3):
-        """Phân loại bằng LLM với exponential backoff"""
+        """
+        Phân loại bằng LLM với exponential backoff.
+        
+        Gọi API Ollama để LLM phân tích log chi tiết hơn.
+        Nếu LLM không phản hồi, fallback về quick_classify.
+        """
         
         error_type = log_data.get('execution', {}).get('error_type', 'UNKNOWN')
         error_detail = log_data.get('execution', {}).get('error_detail', '')
@@ -91,7 +111,7 @@ class ErrorClassifier:
         stdout = log_data.get('raw_logs', {}).get('stdout', '')[-self.STDOUT_LIMIT:]
         stderr = log_data.get('raw_logs', {}).get('stderr', '')[-self.STDERR_LIMIT:]
         
-        # Prompt cho Llama 3.1
+        # Prompt tiếng Việt cho Llama 3.1
         prompt_template = """Bạn là AI chuyên phân tích lỗi Java.
 
 **Thông tin:**
@@ -122,7 +142,7 @@ Phân tích và trả về JSON:
 }}
 """
         
-        # Chuyển error_detail thành string an toàn
+        # Chuyển error_detail thành string (có thể là list)
         error_detail_str = self._safe_str(error_detail)
         
         prompt = prompt_template.format(
@@ -137,8 +157,9 @@ Phân tích và trả về JSON:
             stderr=stderr
         )
 
+        # Retry với exponential backoff: 1s, 2s, 4s
         for attempt in range(max_retries):
-            backoff_time = 2 ** attempt  # 1s, 2s, 4s
+            backoff_time = 2 ** attempt
             try:
                 response = requests.post(
                     self.ollama_url,
@@ -172,18 +193,23 @@ Phân tích và trả về JSON:
                 print("⚠️ LLM Error: {}, retry sau {}s...".format(str(e), backoff_time))
                 time.sleep(backoff_time)
         
+        # Hết retry → Dùng regex fallback
         print("⚠️ LLM không phản hồi sau {} lần. Dùng Regex fallback.".format(max_retries))
         return self.quick_classify(log_data)
     
     def classify(self, log_data):
         """
-        HÀM CHÍNH: Phân loại lỗi
+        HÀM CHÍNH: Phân loại lỗi.
+        
+        Chiến lược:
+            1. Chạy quick_classify trước (nhanh)
+            2. Nếu confidence < 0.8 và use_llm=True → Gọi LLM
         """
         
-        # Quick classify trước
+        # Quick classify trước (không cần LLM)
         quick_result = self.quick_classify(log_data)
         
-        # Nếu confidence thấp → Dùng LLM
+        # Nếu confidence thấp và có LLM → Dùng LLM để phân tích kỹ hơn
         if quick_result['confidence'] < 0.8 and self.use_llm:
             print("🤖 Đang phân tích bằng LLM...")
             return self.llm_classify(log_data)
@@ -191,7 +217,7 @@ Phân tích và trả về JSON:
         return quick_result
     
     def _get_quick_suggestion(self, error_type):
-        """Gợi ý nhanh"""
+        """Gợi ý sửa lỗi nhanh dựa vào loại lỗi."""
         suggestions = {
             'COMPILE_ERROR': '1. Kiểm tra cú pháp Java\n2. Kiểm tra import\n3. Kiểm tra tên class',
             'RUNTIME_ERROR': '1. Kiểm tra null pointer\n2. Kiểm tra index array',
@@ -202,7 +228,7 @@ Phân tích và trả về JSON:
         return suggestions.get(error_type, 'Không có gợi ý')
     
     def save_result(self, classification, log_data):
-        """Lưu kết quả"""
+        """Lưu kết quả phân loại ra file JSON."""
         
         problem_id = log_data.get('metadata', {}).get('problem_id', 'unknown')
         student_id = log_data.get('metadata', {}).get('student_id', 'unknown')
@@ -223,6 +249,7 @@ Phân tích và trả về JSON:
 
 
 # === TEST ===
+# Chạy file này trực tiếp để test ErrorClassifier
 if __name__ == '__main__':
     import json
     from pathlib import Path
