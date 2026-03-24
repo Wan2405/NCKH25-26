@@ -1,7 +1,4 @@
-# Hướng Dẫn Toàn Diện – NCKH25-26: Hệ Thống Gỡ Lỗi Java Tự Động với AI
-
-> **Đối tượng đọc:** Sinh viên mới tiếp cận dự án, chưa có kinh nghiệm với các hệ thống AI-in-the-loop hay Docker.
-> **Ngôn ngữ:** Tiếng Việt – giải thích đơn giản, có ví dụ minh hoạ cụ thể.
+# NCKH25-26: Hệ Thống Gỡ Lỗi Java Tự Động với AI
 
 ---
 
@@ -38,10 +35,6 @@ Hãy tưởng tượng bạn là một sinh viên đang học lập trình Java.
 5. Lặp lại cho đến khi đúng.
 
 Hệ thống NCKH25-26 **tự động hoá toàn bộ quá trình này**: nó tự chạy code, đọc thông báo lỗi, hiểu nguyên nhân (bằng AI), sinh ra bản sửa lỗi, rồi chạy lại – lặp đi lặp lại cho đến khi code đúng hoặc đạt số vòng tối đa.
-
-### Tóm tắt đơn giản
-
-> **Giống như một gia sư AI không biết mệt:** bạn đưa code lỗi vào, hệ thống tự sửa, tự kiểm tra, báo lại kết quả từng bước.
 
 ---
 
@@ -355,9 +348,9 @@ Return JSON only: {"fixed_code": "...", "explanation": "...", "reasoning": "..."
 
 Vòng lặp dừng khi gặp **một trong ba điều kiện**:
 
-1. ✅ **Thành công:** Kết quả là `PASSED` (tất cả test JUnit đều pass).
-2. ❌ **Hết vòng:** Đã chạy đủ `--max-rounds` lần mà vẫn chưa PASSED.
-3. ❌ **LLM không trả về code:** `fixed_code` rỗng sau khi thử lại 3 lần.
+1. **Thành công:** Kết quả là `PASSED` (tất cả test JUnit đều pass).
+2. **Hết vòng:** Đã chạy đủ `--max-rounds` lần mà vẫn chưa PASSED.
+3. **LLM không trả về code:** `fixed_code` rỗng sau khi thử lại 3 lần.
 
 ### Chiến lược retry (thử lại)
 
@@ -853,7 +846,7 @@ Máy xóa phần "*Dưới đây là code đã sửa:*" và các dấu backtick,
 
 Code đã sửa được đưa vào "phòng thí nghiệm" một lần nữa. Lần này:
 ```
-"Bài test số 1: tinhTong(2, 3) = 5?  → Kết quả: 5  → ĐÚNG! ✅"
+"Bài test số 1: tinhTong(2, 3) = 5?  → Kết quả: 5  → ĐÚNG!"
 ```
 
 ---
@@ -878,7 +871,7 @@ Code lỗi
 [Code đã sửa]
    ↓
 [Phòng thí nghiệm Docker] (lần 2)
-   ↓ "PASSED! ✅"
+   ↓ "PASSED!"
 [Kết quả cuối]
 ```
 
@@ -1038,8 +1031,8 @@ SUMMARY
 ======================================================================
 Status    : PASSED
 Rounds    : 2
-  Round 1: TEST_FAILED ❌
-  Round 2: PASSED ✅
+  Round 1: TEST_FAILED
+  Round 2: PASSED
 ======================================================================
 ```
 
